@@ -28,16 +28,16 @@ export TAVILY_API_KEY="your_tavily_api_key"
 
 ## Install From GitHub
 
-After publishing this repository to GitHub:
+Install this package from GitHub:
 
 ```bash
-pi install git:github.com/<your-user>/feynman-learning-pi-agent
+pi install git:github.com/elowen53/feynman-learning
 ```
 
 Or pin a tag:
 
 ```bash
-pi install git:github.com/<your-user>/feynman-learning-pi-agent@v0.1.0
+pi install git:github.com/elowen53/feynman-learning@v0.1.0
 ```
 
 You can also test a checkout directly:
@@ -154,7 +154,7 @@ git commit -m "Initial Feynman learning Pi agent"
 Create a GitHub repository, then:
 
 ```bash
-git remote add origin git@github.com:<your-user>/feynman-learning-pi-agent.git
+git remote add origin https://github.com/elowen53/feynman-learning.git
 git branch -M main
 git push -u origin main
 ```
@@ -169,5 +169,5 @@ git push origin v0.1.0
 Then install with:
 
 ```bash
-pi install git:github.com/<your-user>/feynman-learning-pi-agent@v0.1.0
+pi install git:github.com/elowen53/feynman-learning@v0.1.0
 ```
