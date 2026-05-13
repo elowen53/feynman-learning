@@ -1,0 +1,10 @@
+node_modules/
+npm-debug.log*
+.DS_Store
+
+# Local Pi runtime data should live under ~/.pi/feynman-projects/, not here.
+feynman-projects/
+
+# Local environment files
+.env
+.env.*

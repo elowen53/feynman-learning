@@ -1,0 +1,36 @@
+{
+  "name": "feynman-learning-pi-agent",
+  "version": "0.1.0",
+  "description": "A strict Feynman learning coach package for Pi Coding Agent.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi-coding-agent",
+    "feynman-learning",
+    "learning-agent",
+    "education",
+    "tavily"
+  ],
+  "pi": {
+    "extensions": [
+      "./.pi/extensions"
+    ],
+    "skills": [
+      "./.pi/skills"
+    ],
+    "prompts": [
+      "./.pi/prompts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "files": [
+    ".pi/",
+    "AGENTS.md",
+    "docs/",
+    "README.md",
+    "LICENSE"
+  ]
+}
