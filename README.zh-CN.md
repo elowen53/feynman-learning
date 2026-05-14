@@ -163,7 +163,14 @@ Prompt template：
 
 ## 严格性保证
 
-`feynman_record_score` 在工具层面强制评分门槛：平均分必须 ≥ 7，且单项必须 ≥ 6。不通过时工具会把项目状态自动改回 `CORRECTING`，agent 必须先补救才能推进。完整状态规则见 `feynman-coach` skill。
+工具在以下情形会直接拒绝调用，agent 无法绕过：
+
+- `feynman_record_score` 强制评分门槛：平均分必须 ≥ 7、单项必须 ≥ 6。不通过自动把项目状态改回 `CORRECTING`，必须先补救才能推进。
+- `feynman_record_score` 拒绝 `learnerSummary` 缺失或少于 20 字符——必须先让学习者复述并把原话传进来。
+- `feynman_record_score` 拒绝 `passed: true` 当概念讲义里没有 `### Update` 段——必须先调一次带 `learnerOutputAndCorrections` 的 `feynman_write_concept_note` 留下追问痕迹。
+- `feynman_write_concept_note` 拒绝在同一大纲节点存在 `remediating` 概念时新开另一个概念——除非显式传 `force: true`（仅在学习者主动要求跳过时使用）。
+
+完整状态规则见 `feynman-coach` skill。
 
 ## 项目数据布局
 

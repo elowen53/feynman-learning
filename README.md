@@ -163,7 +163,14 @@ The package also includes a protocol extension that appends the short `AGENTS.md
 
 ## Strict Workflow Guarantees
 
-`feynman_record_score` mechanically enforces the pass threshold: average score must be at least 7 and every dimension must be at least 6. If a concept does not pass, the tool moves the project state back to `CORRECTING`, so the agent must remediate before advancing. Full state rules live in the `feynman-coach` skill.
+The tools refuse to advance when the Feynman loop has been short-circuited. Concretely:
+
+- `feynman_record_score` enforces the pass threshold (`average >= 7` and every dimension `>= 6`). A failing score moves the project state back to `CORRECTING`, so the agent must remediate before advancing.
+- `feynman_record_score` rejects calls where `learnerSummary` is missing or shorter than 20 characters — the learner must restate before being scored.
+- `feynman_record_score` rejects `passed: true` when the concept note has no `### Update` block — there must have been at least one round of follow-up captured via `feynman_write_concept_note(..., learnerOutputAndCorrections: ...)`.
+- `feynman_write_concept_note` rejects starting a new concept while another concept in the same outline node is still `remediating`, unless explicitly bypassed with `force: true`.
+
+Full state rules live in the `feynman-coach` skill.
 
 ## Project Data Layout
 

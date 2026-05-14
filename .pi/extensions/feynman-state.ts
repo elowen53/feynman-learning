@@ -24,7 +24,10 @@ type ConceptNoteParams = {
 	restatementTask?: string;
 	checkQuestions?: string[];
 	learnerOutputAndCorrections?: string;
+	force?: boolean;
 };
+
+const MIN_RESTATEMENT_CHARS = 20;
 
 type ScoreParams = {
 	project: string;
@@ -61,6 +64,11 @@ const conceptNoteParameters = {
 		restatementTask: { type: "string" },
 		checkQuestions: { type: "array", items: { type: "string" } },
 		learnerOutputAndCorrections: { type: "string" },
+		force: {
+			type: "boolean",
+			description:
+				"Set to true to bypass the same-node remediating-blocker check. Use only when the learner explicitly asks to skip the unfinished concept.",
+		},
 	},
 	required: ["project", "outlineNode", "concept"],
 	additionalProperties: false,
@@ -478,6 +486,40 @@ export default function feynmanState(pi: ExtensionAPI) {
 			const conceptSlug = slugify(params.concept) || "concept";
 			const notePath = join(projectDir(project), "concept-notes", nodeSlug, `${conceptSlug}.md`);
 
+			if (!params.force) {
+				const indexFile = conceptIndexPath(project);
+				const data = await readJson(indexFile, { project, concepts: [] });
+				const concepts: ConceptIndexEntry[] = Array.isArray(data.concepts) ? data.concepts : [];
+				const blocker = concepts.find(
+					(c) =>
+						entryNodeSlug(c) === nodeSlug &&
+						entryConceptSlug(c) !== conceptSlug &&
+						c.last_outcome === "remediating",
+				);
+				if (blocker) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Cannot start "${params.concept}": "${blocker.concept}" in the same node is still remediating (avg ${blocker.last_score?.average ?? "?"}). Pass it first via feynman_record_score, or call feynman_write_concept_note again with force: true if the learner explicitly asked to skip.`,
+							},
+						],
+						details: {
+							ok: false,
+							reason: "remediating_blocker",
+							blocker: {
+								concept: blocker.concept,
+								outline_node: blocker.outline_node,
+								path: blocker.path,
+								last_outcome: blocker.last_outcome,
+								last_score: blocker.last_score,
+								active_misconceptions: blocker.active_misconceptions,
+							},
+						},
+					};
+				}
+			}
+
 			await withQueuedFileMutation(notePath, async () => {
 				await mkdir(dirname(notePath), { recursive: true });
 				const existing = await readText(notePath);
@@ -555,6 +597,25 @@ export default function feynmanState(pi: ExtensionAPI) {
 		parameters: recordScoreParameters,
 		async execute(_toolCallId, params: ScoreParams) {
 			const project = slugify(params.project);
+
+			const restatement = (params.learnerSummary || "").trim();
+			if (restatement.length < MIN_RESTATEMENT_CHARS) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Cannot record a score: learnerSummary is ${restatement.length} chars (minimum ${MIN_RESTATEMENT_CHARS}). Ask the learner to restate the concept in their own words first, then pass that text as learnerSummary.`,
+						},
+					],
+					details: {
+						ok: false,
+						reason: "missing_or_short_restatement",
+						min_length: MIN_RESTATEMENT_CHARS,
+						actual_length: restatement.length,
+					},
+				};
+			}
+
 			const scores = {
 				accuracy: clampScore(params.scores.accuracy),
 				simplicity: clampScore(params.scores.simplicity),
@@ -566,6 +627,35 @@ export default function feynmanState(pi: ExtensionAPI) {
 			const average = Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2));
 			const minScore = Math.min(...values);
 			const passed = average >= 7 && minScore >= 6;
+
+			if (passed) {
+				const guardNotePath =
+					params.currentConceptNote ||
+					join(
+						projectDir(project),
+						"concept-notes",
+						slugify(params.outlineNode) || "outline-node",
+						`${slugify(params.concept) || "concept"}.md`,
+					);
+				const noteText = (await readText(guardNotePath)) || "";
+				const correctionRounds = (noteText.match(/^### Update /gm) || []).length;
+				if (correctionRounds === 0) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Cannot mark "${params.concept}" as passed without at least one correction round. Call feynman_write_concept_note again with learnerOutputAndCorrections set so the agent's follow-up and the learner's response are appended to the note, then re-score.`,
+							},
+						],
+						details: {
+							ok: false,
+							reason: "no_correction_round",
+							correction_rounds: correctionRounds,
+							concept_note: guardNotePath,
+						},
+					};
+				}
+			}
 			const entry = {
 				outline_node: params.outlineNode,
 				concept: params.concept,

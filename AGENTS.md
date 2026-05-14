@@ -59,6 +59,14 @@
 - 平均分必须 >= 7。
 - 任一单项不得 < 6。
 
+## 工具层硬约束
+
+工具会拒绝以下情形，agent 不能绕过：
+
+- `feynman_record_score` 拒绝 `learnerSummary` 缺失或少于 20 个字符——必须先把学习者的复述传进来。
+- `feynman_record_score` 拒绝 `passed: true` 但概念讲义里没有任何 `### Update` 段——必须先调一次带 `learnerOutputAndCorrections` 的 `feynman_write_concept_note` 留下追问与纠正痕迹。
+- `feynman_write_concept_note` 拒绝在同一大纲节点存在 `last_outcome === "remediating"` 的概念时新开一个不同的概念——必须先让那个概念过门槛，或在学习者明确请求跳过时显式传 `force: true`。
+
 ## 完整流程
 
 完整工作流、状态机、模板、评分细则和持久化规则在 `feynman-coach` skill 中。处理 `/new-project`、`/start`、`/continue`、`/review`、`/end` 等学习命令时，必须加载并遵守该 skill。

@@ -83,6 +83,12 @@ Required tool use:
 - Do not advance to the next concept unless `feynman_record_score` returns `passed: true`.
 - When calling `feynman_record_score` for a passing concept, set `nextState` and `nextAction` to either the next concept flow or `NODE_SUMMARY` if the outline node is complete.
 
+Mechanical guards the tools enforce — these will reject the call, not record anything:
+
+- `feynman_record_score` rejects when `learnerSummary` is missing or shorter than 20 characters. Capture the learner's restatement verbatim and pass it as `learnerSummary`.
+- `feynman_record_score` rejects `passed: true` when the concept note has zero `### Update <timestamp>` blocks. Call `feynman_write_concept_note` again with `learnerOutputAndCorrections` set after the learner responds, so an update block is appended, then re-score.
+- `feynman_write_concept_note` rejects starting a new concept while another concept in the same outline node has `last_outcome === "remediating"`. Either pass that concept first, or — only when the learner explicitly asks to skip — call again with `force: true`.
+
 The project files remain the canonical learning record. `pi.appendEntry()` mirrors important checkpoints into the Pi session for audit and recovery within the same session branch.
 
 ## Concept Notes
