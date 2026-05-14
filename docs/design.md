@@ -24,6 +24,23 @@ Markdown is canonical because the rest of the project indexing pipeline is Markd
 
 The `feynman_write_concept_note` tool owns concept-note writes. It derives the canonical path, writes the stable Markdown structure, updates `progress.json.current_concept_note`, and mirrors the checkpoint with `pi.appendEntry()`.
 
+A separate `concept-notes/index.json` file is the canonical table of contents for these notes. Both `feynman_write_concept_note` and `feynman_record_score` upsert into it through `withFileMutationQueue()`, so each entry stays current with the concept's path, state, last score, and active misconceptions. The agent reads this file first when locating a note, choosing review targets, or reporting status, instead of scanning the directory.
+
+Each entry has the shape:
+
+```json
+{
+  "outline_node": "transformer-basics",
+  "concept": "self-attention",
+  "path": "/.../concept-notes/transformer-basics/self-attention.md",
+  "state": "LEARNING_CONCEPT",
+  "first_written_at": "2026-05-14T10:30:00Z",
+  "last_updated_at": "2026-05-14T11:05:00Z",
+  "last_score": { "average": 8.2, "min_dimension": 7, "passed": true, "recorded_at": "..." },
+  "active_misconceptions": []
+}
+```
+
 ## Source Policy
 
 Supported source type:

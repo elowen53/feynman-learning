@@ -125,6 +125,59 @@ function reviewsPath(project: string): string {
 	return join(projectDir(project), "reviews.json");
 }
 
+function conceptIndexPath(project: string): string {
+	return join(projectDir(project), "concept-notes", "index.json");
+}
+
+type ConceptIndexEntry = {
+	outline_node: string;
+	concept: string;
+	path: string;
+	state?: string;
+	first_written_at?: string;
+	last_updated_at?: string;
+	last_score?: {
+		average: number;
+		min_dimension: number;
+		passed: boolean;
+		recorded_at: string;
+	};
+	active_misconceptions?: string[];
+};
+
+async function upsertConceptIndex(
+	project: string,
+	update: Partial<ConceptIndexEntry> & Pick<ConceptIndexEntry, "outline_node" | "concept" | "path">,
+): Promise<JsonObject> {
+	const file = conceptIndexPath(project);
+	const slug = slugify(project);
+	return withQueuedFileMutation(file, async () => {
+		const current = await readJson(file, { project: slug, concepts: [] });
+		const concepts: ConceptIndexEntry[] = Array.isArray(current.concepts) ? current.concepts : [];
+		const now = nowStamp();
+		const idx = concepts.findIndex(
+			(c) => c.outline_node === update.outline_node && c.concept === update.concept,
+		);
+		if (idx === -1) {
+			concepts.push({
+				first_written_at: now,
+				last_updated_at: now,
+				...update,
+			});
+		} else {
+			concepts[idx] = {
+				...concepts[idx],
+				...update,
+				first_written_at: concepts[idx].first_written_at || now,
+				last_updated_at: now,
+			};
+		}
+		const next = { project: slug, updated_at: now, concepts };
+		await writeJson(file, next);
+		return next;
+	});
+}
+
 function nowStamp(): string {
 	return new Date().toISOString();
 }
@@ -322,6 +375,13 @@ export default function feynmanState(pi: ExtensionAPI) {
 				next_action: "Ask the learner to restate this concept in their own words and provide their own example.",
 			});
 
+			const index = await upsertConceptIndex(project, {
+				outline_node: params.outlineNode,
+				concept: params.concept,
+				path: notePath,
+				state: params.state || "WAITING_RESTATEMENT",
+			});
+
 			pi.appendEntry("feynman-progress", {
 				event: "concept_note_written",
 				project,
@@ -333,7 +393,7 @@ export default function feynmanState(pi: ExtensionAPI) {
 
 			return {
 				content: [{ type: "text", text: `Saved concept note to ${notePath}` }],
-				details: { ok: true, project, notePath, progress },
+				details: { ok: true, project, notePath, progress, index },
 			};
 		},
 	});
@@ -434,6 +494,24 @@ export default function feynmanState(pi: ExtensionAPI) {
 				return next;
 			});
 
+			const conceptNotePathForIndex =
+				params.currentConceptNote ||
+				join(
+					projectDir(project),
+					"concept-notes",
+					slugify(params.outlineNode) || "outline-node",
+					`${slugify(params.concept) || "concept"}.md`,
+				);
+
+			const index = await upsertConceptIndex(project, {
+				outline_node: params.outlineNode,
+				concept: params.concept,
+				path: conceptNotePathForIndex,
+				state: passed ? params.nextState || "LEARNING_CONCEPT" : "CORRECTING",
+				last_score: { average, min_dimension: minScore, passed, recorded_at: entry.recorded_at },
+				active_misconceptions: passed ? [] : params.misconceptions || [],
+			});
+
 			pi.appendEntry("feynman-progress", {
 				event: "score_recorded",
 				project,
@@ -453,7 +531,7 @@ export default function feynmanState(pi: ExtensionAPI) {
 							: `Recorded non-passing score ${average}/10 for ${params.concept}; continue remediation before advancing.`,
 					},
 				],
-				details: { ok: true, project, passed, average, minScore, scores, progress, reviews },
+				details: { ok: true, project, passed, average, minScore, scores, progress, reviews, index },
 			};
 		},
 	});

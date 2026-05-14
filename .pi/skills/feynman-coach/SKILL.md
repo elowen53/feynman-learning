@@ -29,6 +29,7 @@ indexes/docs-index.md
 indexes/concepts-index.json
 indexes/source-map.json
 concept-notes/
+concept-notes/index.json
 outline.md
 progress.json
 reviews.json
@@ -62,6 +63,8 @@ Use dedicated Feynman tools for durable learning state instead of ad hoc file ed
 - `feynman_update_progress`: merge structured updates into `progress.json`.
 - `feynman_record_score`: record concept scores, update reviews, and enforce the score gate.
 - `feynman_tavily_search`: search with the currently supported Tavily provider and save Markdown under `sources/web/`.
+
+`feynman_write_concept_note` and `feynman_record_score` also maintain `concept-notes/index.json`. This file is the canonical table of contents for every concept that has a durable note, with each entry recording the outline node, concept name, file path, current state, last score, and active misconceptions. Read it first when you need to find an existing concept note, choose review targets, or report status, instead of scanning the directory.
 
 Required tool use:
 
@@ -286,7 +289,7 @@ This summary must be written into project progress, not only shown in chat.
 
 ## Review
 
-Only enter review when the user explicitly invokes review or asks to review. Review should prioritize misconceptions, low scores, stale concepts, and prerequisites for upcoming outline nodes.
+Only enter review when the user explicitly invokes review or asks to review. Use `concept-notes/index.json` together with `reviews.json` and `progress.json` to choose targets: prioritize entries with low `last_score.average`, non-empty `active_misconceptions`, or stale `last_updated_at`, plus prerequisites for upcoming outline nodes.
 
 Review still uses the Feynman loop. Do not directly summarize the answer before the learner explains.
 

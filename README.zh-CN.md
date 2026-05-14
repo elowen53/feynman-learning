@@ -178,6 +178,7 @@ Prompt template：
     concepts-index.json
     source-map.json
   concept-notes/
+  concept-notes/index.json
   outline.md
   progress.json
   reviews.json
@@ -193,6 +194,8 @@ Prompt template：
 ```
 
 它们是已讲概念的长期知识库。聊天保持精简，每份讲义负责承载完整的解释、定义、机制、例子、误区、复述任务和检查题。
+
+`concept-notes/index.json` 是这些讲义的目录索引。`feynman_write_concept_note` 和 `feynman_record_score` 会自动维护它，记录每个概念的大纲节点、文件路径、当前状态、最近分数和未消除的误解，让 agent 在学习与复习时不必扫描整个目录就能直达对应讲义。
 
 ## 推荐工作流
 

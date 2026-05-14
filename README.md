@@ -178,6 +178,7 @@ Learner data is stored outside this repository:
     concepts-index.json
     source-map.json
   concept-notes/
+  concept-notes/index.json
   outline.md
   progress.json
   reviews.json
@@ -193,6 +194,8 @@ Concept notes are saved under:
 ```
 
 They are the long-term knowledge base for taught concepts. The chat stays concise, while each note captures the explanation, definition, mechanism, examples, misconceptions, restatement task, and review questions.
+
+`concept-notes/index.json` is the table of contents for these notes. `feynman_write_concept_note` and `feynman_record_score` keep it up to date with each concept's outline node, file path, current state, last score, and active misconceptions, so the agent can locate notes and pick review targets without scanning the directory.
 
 ## Recommended Workflow
 
