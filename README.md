@@ -10,6 +10,7 @@ This package turns Pi into a single-learner, multi-project learning coach that:
 - builds a learning outline from indexed sources
 - diagnoses the learner before teaching
 - teaches one small concept at a time
+- saves a durable Markdown note for every taught concept
 - requires restatement and learner-owned examples
 - scores each concept before advancing
 - records detailed progress for continuation
@@ -95,6 +96,7 @@ Learner data is stored outside this repository:
     docs-index.md
     concepts-index.json
     source-map.json
+  concept-notes/
   outline.md
   progress.json
   reviews.json
@@ -102,6 +104,14 @@ Learner data is stored outside this repository:
 ```
 
 Only Markdown sources are supported. Convert PDFs or other formats to Markdown before ingestion.
+
+Concept notes are saved under:
+
+```text
+~/.pi/feynman-projects/<project>/concept-notes/<outline-node-slug>/<concept-slug>.md
+```
+
+They are the long-term knowledge base for taught concepts. The chat stays concise, while each note captures the explanation, definition, mechanism, examples, misconceptions, restatement task, and review questions.
 
 ## Recommended Workflow
 

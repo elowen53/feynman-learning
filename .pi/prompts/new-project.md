@@ -14,4 +14,5 @@ Follow this sequence strictly:
 3. Explain that only Markdown sources are supported.
 4. Ask whether they want to manually place Markdown files in `sources/user-docs/` or add files through `/add-doc`.
 5. Do not teach yet.
-6. Create or update the project metadata and initial progress state if file tools are available.
+6. Create the `concept-notes/` directory for durable per-concept Markdown notes.
+7. Create or update the project metadata and initial progress state if file tools are available.

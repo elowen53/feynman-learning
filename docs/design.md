@@ -10,6 +10,18 @@ This agent serves one learner and manages many learning projects. Project data i
 
 The coding repository stores only the agent protocol, prompts, skills, and extensions.
 
+## Concept Notes
+
+Each taught concept is persisted as a Markdown note under:
+
+```text
+~/.pi/feynman-projects/<project>/concept-notes/<outline-node-slug>/<concept-slug>.md
+```
+
+The note is the durable knowledge artifact. Chat output should stay focused on the current learning action, while the note stores the fuller explanation, boundaries, mechanism, examples, misconceptions, restatement task, and review questions.
+
+Markdown is canonical because the rest of the project indexing pipeline is Markdown-first. HTML may be generated as an additional display artifact when requested, but it should not replace the Markdown note.
+
 ## Source Policy
 
 Supported source type:

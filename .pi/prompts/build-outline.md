@@ -20,4 +20,5 @@ Output:
 - Update `outline.md`.
 - Keep the outline teachable as small concepts.
 - Mark prerequisites and diagnosis targets.
+- Plan each small concept so it can become one durable Markdown note under `concept-notes/`.
 - Do not start teaching until initial diagnosis is complete.

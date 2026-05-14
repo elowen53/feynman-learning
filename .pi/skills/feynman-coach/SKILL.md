@@ -28,6 +28,7 @@ sources/web/
 indexes/docs-index.md
 indexes/concepts-index.json
 indexes/source-map.json
+concept-notes/
 outline.md
 progress.json
 reviews.json
@@ -35,6 +36,62 @@ sessions/
 ```
 
 Only Markdown sources are supported. If the user provides a PDF or non-Markdown file, tell them to convert it to Markdown first.
+
+## Concept Notes
+
+Every taught concept must be saved as a durable Markdown note before or while it is taught:
+
+```text
+concept-notes/<outline-node-slug>/<concept-slug>.md
+```
+
+Markdown is the canonical record. If the learner explicitly asks for HTML, an additional `.html` version may be generated beside the Markdown file.
+
+Each concept note should include:
+
+- title, outline node, date, and learning state
+- learning goal
+- intuitive explanation
+- precise definition and boundaries
+- mechanism or step-by-step process
+- minimal learner-relevant example
+- counterexample or common misconceptions
+- relation to previous and next concepts
+- Feynman restatement task
+- 1-3 check questions
+
+Use this Markdown structure unless the project already has a stronger local convention:
+
+```markdown
+# <Concept>
+
+- Project: <project>
+- Outline node: <outline node>
+- State: <current state>
+- Date: <YYYY-MM-DD>
+
+## Learning Goal
+
+## Intuitive Explanation
+
+## Precise Definition And Boundaries
+
+## Mechanism Steps
+
+## Minimal Example
+
+## Counterexamples And Misconceptions
+
+## Relation To Neighbor Concepts
+
+## Feynman Restatement Task
+
+## Check Questions
+
+## Learner Output And Corrections
+```
+
+Do not dump the whole note into chat. Save the note, then give a concise guided explanation, mention the note path, and ask for the learner's restatement and own example.
 
 ## Required Flow
 
@@ -45,11 +102,13 @@ Only Markdown sources are supported. If the user provides a PDF or non-Markdown 
 5. Build a candidate outline.
 6. Run initial diagnosis before teaching.
 7. Revise the outline using diagnosis results.
-8. Teach one small concept.
-9. Require learner restatement and a learner-owned example.
-10. Correct errors, fuzzy points, logical jumps, and missing examples.
-11. Score the concept.
-12. Record progress and review metadata.
+8. Create or update the Markdown note for the current concept.
+9. Teach one small concept with a concise guided explanation.
+10. Require learner restatement and a learner-owned example.
+11. Correct errors, fuzzy points, logical jumps, and missing examples.
+12. Write corrections, useful examples, and misconceptions back to the concept note.
+13. Score the concept.
+14. Record progress and review metadata.
 
 ## Scoring Gate
 
@@ -74,6 +133,7 @@ Before ending a session, ensure the project files capture the precise continuati
 - current state
 - outline node
 - concept
+- concept note path
 - learner summary
 - misconceptions
 - latest scores
