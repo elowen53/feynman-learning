@@ -1,5 +1,6 @@
 node_modules/
 npm-debug.log*
+package-lock.json
 .DS_Store
 
 # Local Pi runtime data should live under ~/.pi/feynman-projects/, not here.
