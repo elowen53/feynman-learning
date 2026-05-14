@@ -77,7 +77,9 @@ Extension command:
 
 - `/feynman-search <project> <query>`: queue a Tavily search request
 
-Custom tool:
+Use `/web-search` when you want the prompt template to guide the agent through the search workflow. Use `/feynman-search` when you want the extension command to queue a Tavily tool request directly.
+
+Custom tools:
 
 - `feynman_tavily_search`: searches Tavily and saves results to Markdown
 - `feynman_write_concept_note`: writes the durable Markdown note for a concept
@@ -85,6 +87,10 @@ Custom tool:
 - `feynman_record_score`: records scores and enforces the pass threshold
 
 The package also includes a protocol extension that appends the short `AGENTS.md` hard rules to Pi's system prompt when the package is installed globally or from GitHub. Detailed workflow rules live in the `feynman-coach` skill and are loaded by the prompt templates with `/skill:feynman-coach`. When you run Pi inside this repository, Pi may already load `AGENTS.md`; the extension avoids duplicating it.
+
+## Strict Workflow Guarantees
+
+`feynman_record_score` mechanically enforces the pass threshold: average score must be at least 7 and every dimension must be at least 6. If a concept does not pass, the tool moves the project state back to `CORRECTING`, so the agent must remediate before advancing. Full state rules live in the `feynman-coach` skill.
 
 ## Project Data Layout
 
@@ -148,8 +154,8 @@ Review is explicit:
 
 ## Package Contents
 
-- `AGENTS.md`: strict coach protocol for project-local use
-- `.pi/extensions/feynman-protocol.ts`: installs the strict coach protocol when used as a Pi package
+- `AGENTS.md`: short hard-rule protocol for project-local use
+- `.pi/extensions/feynman-protocol.ts`: injects short hard rules when used as a Pi package
 - `.pi/extensions/feynman-state.ts`: concept note, progress, and score tools
 - `.pi/skills/feynman-coach/SKILL.md`: reusable Feynman workflow skill
 - `.pi/prompts/*.md`: command prompt templates
