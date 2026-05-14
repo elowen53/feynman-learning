@@ -5,9 +5,17 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 type JsonObject = Record<string, any>;
 type MutationQueue = <T>(path: string, mutation: () => Promise<T>) => Promise<T>;
+type ToolContext = {
+	sessionManager?: {
+		getBranch?: () => Array<{ id?: string; type?: string; customType?: string; data?: any }>;
+		getSessionFile?: () => string | undefined;
+	};
+};
 
 const localMutationQueues = new Map<string, Promise<unknown>>();
 let piMutationQueue: MutationQueue | undefined | null;
+
+type BranchMode = "strict" | "adopt";
 
 type ConceptNoteParams = {
 	project: string;
@@ -25,6 +33,7 @@ type ConceptNoteParams = {
 	checkQuestions?: string[];
 	learnerOutputAndCorrections?: string;
 	force?: boolean;
+	branchMode?: BranchMode;
 };
 
 const MIN_RESTATEMENT_CHARS = 20;
@@ -45,6 +54,13 @@ type ScoreParams = {
 		exampleAbility: number;
 		transferAbility: number;
 	};
+	branchMode?: BranchMode;
+};
+
+type ValidateTransitionParams = {
+	project: string;
+	nextProgress: JsonObject;
+	branchMode?: BranchMode;
 };
 
 const conceptNoteParameters = {
@@ -69,6 +85,11 @@ const conceptNoteParameters = {
 			description:
 				"Set to true to bypass the same-node remediating-blocker check. Use only when the learner explicitly asks to skip the unfinished concept.",
 		},
+		branchMode: {
+			type: "string",
+			description:
+				"Branch ownership mode: strict (default) rejects writes from forked session branches; adopt transfers project ownership to the current branch.",
+		},
 	},
 	required: ["project", "outlineNode", "concept"],
 	additionalProperties: false,
@@ -79,6 +100,11 @@ const updateProgressParameters = {
 	properties: {
 		project: { type: "string" },
 		progress: { type: "object", additionalProperties: true },
+		branchMode: {
+			type: "string",
+			description:
+				"Branch ownership mode: strict (default) rejects writes from forked session branches; adopt transfers project ownership to the current branch.",
+		},
 	},
 	required: ["project", "progress"],
 	additionalProperties: false,
@@ -95,6 +121,11 @@ const recordScoreParameters = {
 		misconceptions: { type: "array", items: { type: "string" } },
 		nextState: { type: "string" },
 		nextAction: { type: "string" },
+		branchMode: {
+			type: "string",
+			description:
+				"Branch ownership mode: strict (default) rejects writes from forked session branches; adopt transfers project ownership to the current branch.",
+		},
 		scores: {
 			type: "object",
 			properties: {
@@ -109,6 +140,21 @@ const recordScoreParameters = {
 		},
 	},
 	required: ["project", "outlineNode", "concept", "scores"],
+	additionalProperties: false,
+} as any;
+
+const validateTransitionParameters = {
+	type: "object",
+	properties: {
+		project: { type: "string" },
+		nextProgress: { type: "object", additionalProperties: true },
+		branchMode: {
+			type: "string",
+			description:
+				"Branch ownership mode: strict (default) rejects writes from forked session branches; adopt transfers project ownership to the current branch.",
+		},
+	},
+	required: ["project", "nextProgress"],
 	additionalProperties: false,
 } as any;
 
@@ -167,6 +213,65 @@ type ConceptIndexUpdate = {
 	last_outcome?: ConceptOutcome;
 	last_score?: ConceptScoreSummary;
 	active_misconceptions?: string[];
+};
+
+type LearningState =
+	| "COLLECTING_GOAL"
+	| "INGESTING_SOURCES"
+	| "BUILDING_OUTLINE"
+	| "DIAGNOSING"
+	| "LEARNING_CONCEPT"
+	| "WAITING_RESTATEMENT"
+	| "CORRECTING"
+	| "SCORING"
+	| "NODE_SUMMARY"
+	| "REVIEWING"
+	| "ENDED";
+
+type BranchInfo = {
+	session_file?: string;
+	branch_entry_id?: string;
+	branch_entry_ids: string[];
+	branch_depth: number;
+};
+
+type ValidationResult = {
+	ok: boolean;
+	reason?: string;
+	message?: string;
+	current_state?: string;
+	next_state?: string;
+	branch?: BranchInfo;
+	owner?: JsonObject;
+};
+
+const learningStates = new Set<string>([
+	"COLLECTING_GOAL",
+	"INGESTING_SOURCES",
+	"BUILDING_OUTLINE",
+	"DIAGNOSING",
+	"LEARNING_CONCEPT",
+	"WAITING_RESTATEMENT",
+	"CORRECTING",
+	"SCORING",
+	"NODE_SUMMARY",
+	"REVIEWING",
+	"ENDED",
+]);
+
+const allowedStateTransitions: Record<string, string[]> = {
+	NEW: ["COLLECTING_GOAL", "INGESTING_SOURCES", "BUILDING_OUTLINE", "DIAGNOSING", "LEARNING_CONCEPT", "WAITING_RESTATEMENT", "REVIEWING", "ENDED"],
+	COLLECTING_GOAL: ["COLLECTING_GOAL", "INGESTING_SOURCES", "ENDED"],
+	INGESTING_SOURCES: ["INGESTING_SOURCES", "BUILDING_OUTLINE", "COLLECTING_GOAL", "ENDED"],
+	BUILDING_OUTLINE: ["BUILDING_OUTLINE", "DIAGNOSING", "INGESTING_SOURCES", "ENDED"],
+	DIAGNOSING: ["DIAGNOSING", "LEARNING_CONCEPT", "BUILDING_OUTLINE", "ENDED"],
+	LEARNING_CONCEPT: ["LEARNING_CONCEPT", "WAITING_RESTATEMENT", "CORRECTING", "ENDED"],
+	WAITING_RESTATEMENT: ["WAITING_RESTATEMENT", "CORRECTING", "SCORING", "LEARNING_CONCEPT", "NODE_SUMMARY", "ENDED"],
+	CORRECTING: ["CORRECTING", "WAITING_RESTATEMENT", "SCORING", "LEARNING_CONCEPT", "NODE_SUMMARY", "ENDED"],
+	SCORING: ["SCORING", "CORRECTING", "LEARNING_CONCEPT", "NODE_SUMMARY", "REVIEWING", "ENDED"],
+	NODE_SUMMARY: ["NODE_SUMMARY", "LEARNING_CONCEPT", "DIAGNOSING", "REVIEWING", "ENDED"],
+	REVIEWING: ["REVIEWING", "WAITING_RESTATEMENT", "CORRECTING", "SCORING", "ENDED"],
+	ENDED: ["ENDED", "COLLECTING_GOAL", "INGESTING_SOURCES", "BUILDING_OUTLINE", "DIAGNOSING", "LEARNING_CONCEPT", "WAITING_RESTATEMENT", "REVIEWING"],
 };
 
 function entryNodeSlug(entry: ConceptIndexEntry): string {
@@ -347,6 +452,218 @@ async function withQueuedFileMutation<T>(path: string, mutation: () => Promise<T
 	return localWithFileMutationQueue(path, mutation);
 }
 
+function normalizeBranchMode(value: string | undefined): BranchMode {
+	return value === "adopt" ? "adopt" : "strict";
+}
+
+function getBranchInfo(ctx?: ToolContext): BranchInfo | undefined {
+	const manager = ctx?.sessionManager;
+	if (!manager?.getBranch) return undefined;
+
+	const branch = manager.getBranch();
+	const ids = branch.map((entry) => entry.id).filter((id): id is string => typeof id === "string" && id.length > 0);
+	return {
+		session_file: manager.getSessionFile?.(),
+		branch_entry_id: ids[ids.length - 1],
+		branch_entry_ids: ids,
+		branch_depth: ids.length,
+	};
+}
+
+function branchStamp(branch: BranchInfo | undefined, source: string): JsonObject | undefined {
+	if (!branch?.branch_entry_id && !branch?.session_file) return undefined;
+	return {
+		session_file: branch.session_file,
+		branch_entry_id: branch.branch_entry_id,
+		branch_depth: branch.branch_depth,
+		source,
+		updated_at: nowStamp(),
+	};
+}
+
+function validateBranchOwnership(current: JsonObject, branch: BranchInfo | undefined, mode: BranchMode): ValidationResult {
+	const owner = current.pi_branch;
+	if (!owner || mode === "adopt" || !branch) {
+		return { ok: true, branch, owner };
+	}
+
+	if (owner.session_file && branch.session_file && owner.session_file !== branch.session_file) {
+		return {
+			ok: false,
+			reason: "branch_owner_mismatch",
+			message:
+				"This Feynman project is owned by a different Pi session file. Use branchMode: \"adopt\" only if the learner wants this branch to take ownership.",
+			branch,
+			owner,
+		};
+	}
+
+	if (
+		typeof owner.branch_entry_id === "string" &&
+		owner.branch_entry_id.length > 0 &&
+		!branch.branch_entry_ids.includes(owner.branch_entry_id)
+	) {
+		return {
+			ok: false,
+			reason: "branch_owner_not_in_current_branch",
+			message:
+				"This Feynman project was advanced on another Pi branch. Continue from that branch or use branchMode: \"adopt\" only after choosing this branch as the canonical learning path.",
+			branch,
+			owner,
+		};
+	}
+
+	return { ok: true, branch, owner };
+}
+
+function isPassedScoreFor(progress: JsonObject, outlineNode?: string, concept?: string): boolean {
+	const scores = Array.isArray(progress.scores) ? progress.scores : [];
+	const wantNode = slugify(outlineNode || progress.current_outline_node || "");
+	const wantConcept = slugify(concept || progress.current_concept || "");
+	for (let i = scores.length - 1; i >= 0; i--) {
+		const item = scores[i];
+		if (slugify(item?.outline_node || "") !== wantNode) continue;
+		if (slugify(item?.concept || "") !== wantConcept) continue;
+		return item?.passed === true;
+	}
+	return false;
+}
+
+function validateStateTransition(
+	current: JsonObject,
+	updates: JsonObject,
+	options: { scorePassed?: boolean; allowConceptSwitch?: boolean } = {},
+): ValidationResult {
+	const currentState = String(current.current_state || "NEW");
+	const nextState = String(updates.current_state || current.current_state || "NEW");
+
+	if (nextState !== "NEW" && !learningStates.has(nextState)) {
+		return {
+			ok: false,
+			reason: "unknown_state",
+			message: `Unknown Feynman state "${nextState}".`,
+			current_state: currentState,
+			next_state: nextState,
+		};
+	}
+
+	const currentConcept = slugify(current.current_concept || "");
+	const nextConcept = slugify(updates.current_concept || current.current_concept || "");
+	const conceptChanged = currentConcept && nextConcept && currentConcept !== nextConcept;
+	if (conceptChanged && !options.allowConceptSwitch && !isPassedScoreFor(current)) {
+		return {
+			ok: false,
+			reason: "current_concept_not_passed",
+			message:
+				"Cannot switch to another concept before the current concept has a recorded passing score.",
+			current_state: currentState,
+			next_state: nextState,
+		};
+	}
+
+	if (currentState === "WAITING_RESTATEMENT" && nextState === "LEARNING_CONCEPT" && !options.scorePassed) {
+		return {
+			ok: false,
+			reason: "restatement_required_before_advancing",
+			message:
+				"Cannot advance from WAITING_RESTATEMENT to LEARNING_CONCEPT. Score the learner's restatement first.",
+			current_state: currentState,
+			next_state: nextState,
+		};
+	}
+
+	if (currentState === "CORRECTING" && ["LEARNING_CONCEPT", "NODE_SUMMARY"].includes(nextState) && !options.scorePassed) {
+		return {
+			ok: false,
+			reason: "remediation_not_passed",
+			message:
+				"Cannot leave CORRECTING for the next concept or node summary until the current concept passes the scoring gate.",
+			current_state: currentState,
+			next_state: nextState,
+		};
+	}
+
+	const allowed = allowedStateTransitions[currentState] || allowedStateTransitions.NEW;
+	if (currentState !== nextState && !allowed.includes(nextState)) {
+		return {
+			ok: false,
+			reason: "invalid_transition",
+			message: `Invalid Feynman state transition: ${currentState} -> ${nextState}.`,
+			current_state: currentState,
+			next_state: nextState,
+		};
+	}
+
+	if (nextState === "SCORING") {
+		const summary = String(updates.learner_summary || updates.learnerSummary || current.learner_summary || "").trim();
+		if (summary.length < MIN_RESTATEMENT_CHARS) {
+			return {
+				ok: false,
+				reason: "missing_or_short_restatement",
+				message:
+					"Cannot enter SCORING without a learner restatement of at least 20 characters.",
+				current_state: currentState,
+				next_state: nextState,
+			};
+		}
+	}
+
+	return { ok: true, current_state: currentState, next_state: nextState };
+}
+
+function validationFailureResult(validation: ValidationResult) {
+	return {
+		content: [
+			{
+				type: "text",
+				text: validation.message || `Feynman state validation failed: ${validation.reason || "unknown"}.`,
+			},
+		],
+		details: {
+			ok: false,
+			reason: validation.reason || "validation_failed",
+			validation,
+		},
+	};
+}
+
+async function validateProjectMutation(
+	project: string,
+	updates: JsonObject,
+	options: {
+		ctx?: ToolContext;
+		branchMode?: BranchMode;
+		source: string;
+		scorePassed?: boolean;
+		allowConceptSwitch?: boolean;
+	}): Promise<{ ok: true; current: JsonObject; next: JsonObject; branch?: BranchInfo } | { ok: false; validation: ValidationResult }> {
+	const current = await readJson(progressPath(project), {
+		project: slugify(project),
+		scores: [],
+		completed_nodes: [],
+		active_misconceptions: [],
+	});
+	const branch = getBranchInfo(options.ctx);
+	const branchValidation = validateBranchOwnership(current, branch, options.branchMode || "strict");
+	if (!branchValidation.ok) return { ok: false, validation: branchValidation };
+
+	const stateValidation = validateStateTransition(current, updates, {
+		scorePassed: options.scorePassed,
+		allowConceptSwitch: options.allowConceptSwitch,
+	});
+	if (!stateValidation.ok) return { ok: false, validation: stateValidation };
+
+	const stamp = branchStamp(branch, options.source);
+	const next = {
+		...current,
+		...updates,
+		project: slugify(project),
+		...(stamp ? { pi_branch: stamp } : {}),
+		updated_at: nowStamp(),
+	};
+	return { ok: true, current, next, branch };
+}
+
 function clampScore(value: number): number {
 	if (!Number.isFinite(value)) return 0;
 	return Math.max(0, Math.min(10, value));
@@ -453,18 +770,24 @@ async function writeJson(file: string, value: JsonObject): Promise<void> {
 	await writeFile(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-async function mergeProgress(project: string, updates: JsonObject): Promise<JsonObject> {
+async function mergeProgress(
+	project: string,
+	updates: JsonObject,
+	options: {
+		ctx?: ToolContext;
+		branchMode?: BranchMode;
+		source: string;
+		scorePassed?: boolean;
+		allowConceptSwitch?: boolean;
+	} = { source: "feynman_update_progress" },
+): Promise<{ ok: true; progress: JsonObject } | { ok: false; validation: ValidationResult }> {
 	const file = progressPath(project);
 	return withQueuedFileMutation(file, async () => {
-		const current = await readJson(file, { project: slugify(project), scores: [], completed_nodes: [], active_misconceptions: [] });
-		const next = {
-			...current,
-			...updates,
-			project: slugify(project),
-			updated_at: nowStamp(),
-		};
-		await writeJson(file, next);
-		return next;
+		const validation = await validateProjectMutation(project, updates, options);
+		if (!validation.ok) return validation;
+
+		await writeJson(file, validation.next);
+		return { ok: true, progress: validation.next };
 	});
 }
 
@@ -480,7 +803,7 @@ export default function feynmanState(pi: ExtensionAPI) {
 			"Call feynman_write_concept_note again after the learner responds to append corrections, useful examples, and misconceptions.",
 		],
 		parameters: conceptNoteParameters,
-		async execute(_toolCallId, params: ConceptNoteParams) {
+		async execute(_toolCallId, params: ConceptNoteParams, _signal, _onUpdate, ctx?: ToolContext) {
 			const project = slugify(params.project);
 			const nodeSlug = slugify(params.outlineNode) || "outline-node";
 			const conceptSlug = slugify(params.concept) || "concept";
@@ -520,19 +843,32 @@ export default function feynmanState(pi: ExtensionAPI) {
 				}
 			}
 
+			const progressResult = await mergeProgress(
+				project,
+				{
+					current_state: params.state || "WAITING_RESTATEMENT",
+					current_outline_node: params.outlineNode,
+					current_concept: params.concept,
+					current_concept_note: notePath,
+					next_action: "Ask the learner to restate this concept in their own words and provide their own example.",
+				},
+				{
+					ctx,
+					branchMode: normalizeBranchMode(params.branchMode),
+					source: "feynman_write_concept_note",
+					allowConceptSwitch: !!params.force,
+				},
+			);
+			if (!progressResult.ok) {
+				return validationFailureResult(progressResult.validation);
+			}
+			const progress = progressResult.progress;
+
 			await withQueuedFileMutation(notePath, async () => {
 				await mkdir(dirname(notePath), { recursive: true });
 				const existing = await readText(notePath);
 				const markdown = existing ? appendCorrection(existing, params) : renderConceptNote({ ...params, project }, notePath);
 				await writeFile(notePath, markdown, "utf8");
-			});
-
-			const progress = await mergeProgress(project, {
-				current_state: params.state || "WAITING_RESTATEMENT",
-				current_outline_node: params.outlineNode,
-				current_concept: params.concept,
-				current_concept_note: notePath,
-				next_action: "Ask the learner to restate this concept in their own words and provide their own example.",
 			});
 
 			const { entry: conceptEntry, total: conceptCount } = await upsertConceptIndex(project, {
@@ -567,9 +903,17 @@ export default function feynmanState(pi: ExtensionAPI) {
 			"Use feynman_update_progress whenever the current learning state, node, concept, note path, or next action changes.",
 		],
 		parameters: updateProgressParameters,
-		async execute(_toolCallId, params: { project: string; progress: JsonObject }) {
+		async execute(_toolCallId, params: { project: string; progress: JsonObject; branchMode?: BranchMode }, _signal, _onUpdate, ctx?: ToolContext) {
 			const project = slugify(params.project);
-			const progress = await mergeProgress(project, params.progress);
+			const progressResult = await mergeProgress(project, params.progress, {
+				ctx,
+				branchMode: normalizeBranchMode(params.branchMode),
+				source: "feynman_update_progress",
+			});
+			if (!progressResult.ok) {
+				return validationFailureResult(progressResult.validation);
+			}
+			const progress = progressResult.progress;
 			pi.appendEntry("feynman-progress", {
 				event: "progress_updated",
 				project,
@@ -585,6 +929,42 @@ export default function feynmanState(pi: ExtensionAPI) {
 	});
 
 	pi.registerTool({
+		name: "feynman_validate_transition",
+		label: "Validate Feynman Transition",
+		description:
+			"Validate a proposed Feynman progress.json transition and Pi session branch ownership before writing it.",
+		promptSnippet:
+			"feynman_validate_transition: check whether a proposed Feynman state transition is legal before updating progress.",
+		promptGuidelines: [
+			"Use feynman_validate_transition when unsure whether a Feynman project can move to the next state.",
+			"Do not bypass a feynman_validate_transition failure unless the learner explicitly chooses to adopt the current Pi branch.",
+		],
+		parameters: validateTransitionParameters,
+		async execute(_toolCallId, params: ValidateTransitionParams, _signal, _onUpdate, ctx?: ToolContext) {
+			const project = slugify(params.project);
+			const validation = await validateProjectMutation(project, params.nextProgress, {
+				ctx,
+				branchMode: normalizeBranchMode(params.branchMode),
+				source: "feynman_validate_transition",
+			});
+			if (!validation.ok) {
+				return validationFailureResult(validation.validation);
+			}
+
+			return {
+				content: [{ type: "text", text: `Transition is valid for ${project}.` }],
+				details: {
+					ok: true,
+					project,
+					current: validation.current,
+					next: validation.next,
+					branch: validation.branch,
+				},
+			};
+		},
+	});
+
+	pi.registerTool({
 		name: "feynman_record_score",
 		label: "Record Feynman Score",
 		description: "Record a concept score, enforce the pass threshold, and update progress and review metadata.",
@@ -595,7 +975,7 @@ export default function feynmanState(pi: ExtensionAPI) {
 			"Do not advance to the next concept unless feynman_record_score returns passed: true.",
 		],
 		parameters: recordScoreParameters,
-		async execute(_toolCallId, params: ScoreParams) {
+		async execute(_toolCallId, params: ScoreParams, _signal, _onUpdate, ctx?: ToolContext) {
 			const project = slugify(params.project);
 
 			const restatement = (params.learnerSummary || "").trim();
@@ -673,9 +1053,7 @@ export default function feynmanState(pi: ExtensionAPI) {
 				const current = await readJson(file, { project, scores: [], completed_nodes: [], active_misconceptions: [] });
 				const nextScores = Array.isArray(current.scores) ? [...current.scores, entry] : [entry];
 				const activeMisconceptions = passed ? current.active_misconceptions || [] : params.misconceptions || [];
-				const next = {
-					...current,
-					project,
+				const progressUpdates = {
 					current_state: passed ? params.nextState || "LEARNING_CONCEPT" : "CORRECTING",
 					current_outline_node: params.outlineNode,
 					current_concept: params.concept,
@@ -687,11 +1065,30 @@ export default function feynmanState(pi: ExtensionAPI) {
 						(passed
 							? "Proceed to the next concept or summarize the node if the node is complete."
 							: "Remediate the lowest scoring dimension before advancing."),
+				};
+				const branch = getBranchInfo(ctx);
+				const branchValidation = validateBranchOwnership(current, branch, normalizeBranchMode(params.branchMode));
+				if (!branchValidation.ok) return branchValidation;
+				const stateValidation = validateStateTransition(current, progressUpdates, {
+					scorePassed: passed,
+					allowConceptSwitch: passed,
+				});
+				if (!stateValidation.ok) return stateValidation;
+				const stamp = branchStamp(branch, "feynman_record_score");
+				const next = {
+					...current,
+					project,
+					...progressUpdates,
+					...(stamp ? { pi_branch: stamp } : {}),
 					updated_at: nowStamp(),
 				};
 				await writeJson(file, next);
 				return next;
 			});
+			if (progress.ok === false) {
+				return validationFailureResult(progress);
+			}
+			const progressState = progress as JsonObject;
 
 			const reviewFile = reviewsPath(project);
 			const reviews = await withQueuedFileMutation(reviewFile, async () => {
@@ -727,7 +1124,7 @@ export default function feynmanState(pi: ExtensionAPI) {
 				concept: params.concept,
 				average,
 				passed,
-				updatedAt: progress.updated_at,
+				updatedAt: progressState.updated_at,
 			});
 
 			return {
@@ -739,7 +1136,7 @@ export default function feynmanState(pi: ExtensionAPI) {
 							: `Recorded non-passing score ${average}/10 for ${params.concept}; continue remediation before advancing.`,
 					},
 				],
-				details: { ok: true, project, passed, average, minScore, scores, progress, reviews, concept_entry: conceptEntry, concept_count: conceptCount },
+				details: { ok: true, project, passed, average, minScore, scores, progress: progressState, reviews, concept_entry: conceptEntry, concept_count: conceptCount },
 			};
 		},
 	});

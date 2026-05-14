@@ -50,6 +50,7 @@
 
 - `feynman_write_concept_note`：讲解或补救概念前写入概念讲义。
 - `feynman_update_progress`：更新 `progress.json`。
+- `feynman_validate_transition`：不确定是否能推进状态时，先验证状态转移和 Pi 分支归属。
 - `feynman_record_score`：记录评分并执行通过门槛。
 - `feynman_tavily_search`：使用当前唯一支持的 Tavily provider 搜索并保存 Markdown。
 
@@ -66,6 +67,8 @@
 - `feynman_record_score` 拒绝 `learnerSummary` 缺失或少于 20 个字符——必须先把学习者的复述传进来。
 - `feynman_record_score` 拒绝 `passed: true` 但概念讲义里没有任何 `### Update` 段——必须先调一次带 `learnerOutputAndCorrections` 的 `feynman_write_concept_note` 留下追问与纠正痕迹。
 - `feynman_write_concept_note` 拒绝在同一大纲节点存在 `last_outcome === "remediating"` 的概念时新开一个不同的概念——必须先让那个概念过门槛，或在学习者明确请求跳过时显式传 `force: true`。
+- 所有会写 `progress.json` 的 Feynman 工具都会验证状态转移；不能从 `WAITING_RESTATEMENT` 或 `CORRECTING` 直接跳到下一个概念，除非当前评分已通过。
+- 所有会写 `progress.json` 的 Feynman 工具默认使用 Pi branch ownership；如果当前 session branch 不是该项目进度的后代分支，会拒绝写入。只有学习者明确选择让当前分支接管项目时，才允许传 `branchMode: "adopt"`。
 
 ## 完整流程
 

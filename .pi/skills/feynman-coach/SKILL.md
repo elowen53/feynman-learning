@@ -61,6 +61,7 @@ Use dedicated Feynman tools for durable learning state instead of ad hoc file ed
 
 - `feynman_write_concept_note`: create or update the canonical Markdown note before teaching or remediating a concept.
 - `feynman_update_progress`: merge structured updates into `progress.json`.
+- `feynman_validate_transition`: validate a proposed `progress.json` state transition and Pi session branch ownership before writing.
 - `feynman_record_score`: record concept scores, update reviews, and enforce the score gate.
 - `feynman_tavily_search`: search with the currently supported Tavily provider and save Markdown under `sources/web/`.
 - `feynman_list_concepts`: query `concept-notes/index.json` with filters (`outline_node`, `last_outcome`, `limit`).
@@ -79,6 +80,7 @@ Required tool use:
 
 - Before teaching a new concept, call `feynman_write_concept_note`.
 - When the current state, outline node, concept, note path, or next action changes, call `feynman_update_progress`.
+- When unsure whether the current project can move to a new state, call `feynman_validate_transition` first.
 - After evaluating the learner's restatement and example, call `feynman_record_score`.
 - Do not advance to the next concept unless `feynman_record_score` returns `passed: true`.
 - When calling `feynman_record_score` for a passing concept, set `nextState` and `nextAction` to either the next concept flow or `NODE_SUMMARY` if the outline node is complete.
@@ -88,6 +90,8 @@ Mechanical guards the tools enforce — these will reject the call, not record a
 - `feynman_record_score` rejects when `learnerSummary` is missing or shorter than 20 characters. Capture the learner's restatement verbatim and pass it as `learnerSummary`.
 - `feynman_record_score` rejects `passed: true` when the concept note has zero `### Update <timestamp>` blocks. Call `feynman_write_concept_note` again with `learnerOutputAndCorrections` set after the learner responds, so an update block is appended, then re-score.
 - `feynman_write_concept_note` rejects starting a new concept while another concept in the same outline node has `last_outcome === "remediating"`. Either pass that concept first, or — only when the learner explicitly asks to skip — call again with `force: true`.
+- Mutating Feynman tools reject invalid state transitions. In particular, do not move from `WAITING_RESTATEMENT` or `CORRECTING` to a new concept until the current concept has a passing score.
+- Mutating Feynman tools reject writes from a Pi session branch that does not descend from the branch that last advanced the project. Use `branchMode: "adopt"` only when the learner explicitly chooses the current branch as the canonical project path.
 
 The project files remain the canonical learning record. `pi.appendEntry()` mirrors important checkpoints into the Pi session for audit and recovery within the same session branch.
 

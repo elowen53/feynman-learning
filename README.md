@@ -155,6 +155,7 @@ Custom tools:
 - `feynman_tavily_search`: searches Tavily and saves results to Markdown
 - `feynman_write_concept_note`: writes the durable Markdown note for a concept
 - `feynman_update_progress`: updates project progress with serialized file writes
+- `feynman_validate_transition`: validates state transitions and Pi branch ownership before progress writes
 - `feynman_record_score`: records scores and enforces the pass threshold
 - `feynman_list_concepts`: queries `concept-notes/index.json` with filters so the agent only loads relevant entries
 - `feynman_rebuild_concept_index`: rebuilds `concept-notes/index.json` from the note files and `reviews.json` when it drifts
@@ -169,6 +170,7 @@ The tools refuse to advance when the Feynman loop has been short-circuited. Conc
 - `feynman_record_score` rejects calls where `learnerSummary` is missing or shorter than 20 characters — the learner must restate before being scored.
 - `feynman_record_score` rejects `passed: true` when the concept note has no `### Update` block — there must have been at least one round of follow-up captured via `feynman_write_concept_note(..., learnerOutputAndCorrections: ...)`.
 - `feynman_write_concept_note` rejects starting a new concept while another concept in the same outline node is still `remediating`, unless explicitly bypassed with `force: true`.
+- Mutating Feynman tools reject invalid state transitions and writes from non-descendant Pi session branches. Use `branchMode: "adopt"` only when the learner explicitly chooses the current branch as the canonical project path.
 
 Full state rules live in the `feynman-coach` skill.
 

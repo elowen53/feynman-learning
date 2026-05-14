@@ -4,6 +4,9 @@
   "description": "A strict Feynman learning coach package for Pi Coding Agent.",
   "type": "module",
   "license": "MIT",
+  "scripts": {
+    "test": "node tests/feynman-state.test.mjs"
+  },
   "keywords": [
     "pi-package",
     "pi-coding-agent",
@@ -26,10 +29,14 @@
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
   },
+  "devDependencies": {
+    "jiti": "^2.6.1"
+  },
   "files": [
     ".pi/",
     "AGENTS.md",
     "docs/",
+    "tests/",
     "README.md",
     "README.zh-CN.md",
     "LICENSE"
