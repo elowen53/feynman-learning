@@ -175,6 +175,7 @@ State constraints:
 - Without learner restatement and learner-owned example, do not score.
 - If the current concept average is below 7, do not move to the next concept.
 - If any score dimension is below 6, remediate that dimension.
+- If `feynman_record_score` returns `passed: false`, the state returns from `SCORING` to `CORRECTING`; remediate before scoring again.
 - Enter review only when the learner explicitly asks for review.
 - On `/end`, persist the exact continuation point.
 
