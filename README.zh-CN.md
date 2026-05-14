@@ -23,6 +23,7 @@
 - 每个概念必须通过评分门槛才能推进
 - 进度与评分由专用 Pi 工具落盘，避免被遗忘
 - 记录精确的续点，方便随时中断恢复
+- 把有证据支撑的教练模式跨项目沉淀到 `_learner/SOUL.md`
 - 复习只在用户主动请求时启动
 
 ## Agent 流程图
@@ -212,6 +213,17 @@ Prompt template：
 它们是已讲概念的长期知识库。聊天保持精简，每份讲义负责承载完整的解释、定义、机制、例子、误区、复述任务和检查题。
 
 `concept-notes/index.json` 是这些讲义的目录索引。`feynman_write_concept_note` 和 `feynman_record_score` 会自动维护它：每条 entry 记录大纲节点、概念名、slug、文件路径、`last_outcome`（`new` / `learning` / `remediating` / `passed`）、最近一次评分摘要和未消除的误解。Agent 通过 `feynman_list_concepts` 按需查询，避免把整份索引拉进上下文；当索引与实际笔记文件失同步（手工编辑、改名、删除等）时，用 `feynman_rebuild_concept_index` 从笔记文件和 `reviews.json` 重建。
+
+跨项目的教练记忆放在单独目录：
+
+```text
+~/.pi/feynman-projects/_learner/
+  SOUL.md
+```
+
+`SOUL.md` 是 agent 在每次 `/start` 和 `/continue` 都会读取的长期教练记忆。它分 7 个类目记录有证据支撑的学习模式：稳定的学习偏好、反复出现的弱点、有效的补救策略、应避免的无效模式、评分校准注记、跨项目误解、教练自我修正。它**不是人格 prompt**：写入要么要学习者确认，要么需要至少 2 次独立观察加具体证据；被证伪的条目会被移入 `Retracted` 段，默认读取时不返回，但保留下来用于审计。
+
+以下划线开头的目录名保留给系统数据（如 `_learner/`）。所有 Feynman 工具会拒绝以 `_` 开头的项目名。
 
 ## 推荐工作流
 

@@ -23,6 +23,7 @@ This package turns Pi into a single-learner, multi-project learning coach that:
 - scores each concept before advancing
 - enforces progress and score writes through dedicated Pi tools
 - records detailed progress for continuation
+- carries evidence-backed coaching patterns across projects in `_learner/SOUL.md`
 - runs review only when the learner explicitly asks
 
 ## Agent Workflow
@@ -212,6 +213,17 @@ Concept notes are saved under:
 They are the long-term knowledge base for taught concepts. The chat stays concise, while each note captures the explanation, definition, mechanism, examples, misconceptions, restatement task, and review questions.
 
 `concept-notes/index.json` is the table of contents for these notes. `feynman_write_concept_note` and `feynman_record_score` keep it up to date with each concept's outline node, slugs, file path, `last_outcome` (`new` / `learning` / `remediating` / `passed`), last score summary, and active misconceptions. The agent uses `feynman_list_concepts` to query it with filters, and `feynman_rebuild_concept_index` to recover from drift after manual edits.
+
+Cross-project coach memory lives outside any single project:
+
+```text
+~/.pi/feynman-projects/_learner/
+  SOUL.md
+```
+
+`SOUL.md` is the long-term coaching memory the agent loads on every `/start` and `/continue`. It records seven categories of evidence-backed patterns — stable learning preferences, recurring weaknesses, effective remediation patterns, ineffective patterns to avoid, scoring calibration notes, cross-project misconceptions, and coach self-corrections. It is not a personality prompt: writes require either learner confirmation or two independent observations plus concrete evidence, and disproven entries are moved to a `Retracted` section that is hidden from default reads but kept for audit.
+
+Directory names starting with `_` are reserved for Feynman system data like `_learner/`. All Feynman tools reject project names that begin with `_`.
 
 ## Recommended Workflow
 
