@@ -4,6 +4,12 @@ English | [Chinese (Simplified)](./README.zh-CN.md)
 
 A strict Feynman learning coach for [Pi Coding Agent](https://pi.dev/).
 
+## Background
+
+Feynman learning works because explaining in simple words exposes what you do not really understand. An LLM removes the need to find a listener: it is always available, patient, and able to challenge vague explanations. This agent turns that loop into a strict workflow: explain, get questioned, repair gaps, score, and only then move on.
+
+Strictness matters because a default LLM can be too agreeable. It may say an unclear explanation is "well structured" instead of pressing on the weak parts. This agent defaults to a stricter coach mode: it looks for gaps, asks follow-up questions, and blocks progress until the concept passes.
+
 This package turns Pi into a single-learner, multi-project learning coach that:
 
 - creates persistent learning projects under `~/.pi/feynman-projects/`
