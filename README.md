@@ -17,6 +17,69 @@ This package turns Pi into a single-learner, multi-project learning coach that:
 - records detailed progress for continuation
 - runs review only when the learner explicitly asks
 
+## Agent Workflow
+
+### Project lifecycle
+
+```mermaid
+flowchart TD
+    Start(["用户: 我想学 X"]) --> NP["/new-project X"]
+    NP --> G1["1. 采集学习目标<br/>COLLECTING_GOAL"]
+    G1 --> G2["2. 准备资料<br/>/add-doc + /web-search<br/>→ sources/"]
+    G2 --> G3["3. 建立索引<br/>/ingest-docs<br/>INGESTING_SOURCES"]
+    G3 --> G4["4. 生成大纲<br/>/build-outline<br/>BUILDING_OUTLINE"]
+    G4 --> G5["5. 初始诊断<br/>DIAGNOSING<br/>5 题判定水平"]
+    G5 --> G6["6. 费曼循环<br/>每次只讲一个概念"]
+    G6 --> G7{"大纲全部完成?"}
+    G7 -->|否| G6
+    G7 -->|是| G8(["ENDED"])
+
+    G6 -.->|随时| Save["/end<br/>写入精确续点"]
+    Save -.->|下次会话| Resume["/continue<br/>从续点恢复"]
+    Resume -.-> G6
+
+    G8 -.->|用户主动| Rev["/review<br/>复习低分/误解/陈旧"]
+    Rev -.-> G6
+
+    classDef phase fill:#e1f5ff,stroke:#0288d1,color:#000
+    classDef cmd fill:#e8f5e9,stroke:#388e3c,color:#000
+    classDef done fill:#fce4ec,stroke:#c2185b,color:#000
+
+    class G1,G2,G3,G4,G5,G6 phase
+    class NP,Save,Resume,Rev cmd
+    class G8 done
+```
+
+### Per-concept Feynman loop
+
+```mermaid
+flowchart TD
+    Begin(["进入一个概念"]) --> N1["feynman_write_concept_note<br/>建立概念讲义文件"]
+    N1 --> Teach["对话: 精简导读 + 讲义路径<br/>LEARNING_CONCEPT"]
+    Teach --> Ask["要求学习者复述 + 举自己的例子<br/>WAITING_RESTATEMENT"]
+    Ask --> Diag["指出错误/模糊/跳跃/缺例<br/>CORRECTING"]
+    Diag --> Remed["选择补救:<br/>降难度 · 换类比 · 拆步骤<br/>加反例 · 加边界 · 迁移题"]
+    Remed --> N2["feynman_write_concept_note<br/>把纠正与例子回写讲义"]
+    N2 --> Score["feynman_record_score<br/>5 维度 0-10:<br/>准确·简洁·完整·举例·迁移"]
+    Score --> Gate{"avg ≥ 7 且 min ≥ 6 ?"}
+    Gate -->|否 → 自动回 CORRECTING| Diag
+    Gate -->|是| Pass(["本概念通过"])
+    Pass --> NodeDone{"节点最后一个概念?"}
+    NodeDone -->|否| Begin
+    NodeDone -->|是| Sum["NODE_SUMMARY<br/>掌握/误解/有效例子/<br/>复习优先级 → progress.json"]
+    Sum --> Next(["进入下一节点"])
+
+    classDef tool fill:#fff4e1,stroke:#f57c00,color:#000
+    classDef state fill:#e1f5ff,stroke:#0288d1,color:#000
+    classDef gate fill:#fce4ec,stroke:#c2185b,color:#000
+
+    class N1,N2,Score tool
+    class Teach,Ask,Diag,Remed,Sum state
+    class Gate,NodeDone gate
+```
+
+橙色块是机械强制的 Pi 工具调用，蓝色块是状态机节点，粉色块是判定门槛，绿色是用户命令入口。完整状态规则在 [`feynman-coach`](.pi/skills/feynman-coach/SKILL.md) skill 中。
+
 ## Requirements
 
 - Node.js compatible with Pi Coding Agent
