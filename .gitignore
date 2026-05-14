@@ -8,3 +8,6 @@ feynman-projects/
 # Local environment files
 .env
 .env.*
+
+# Local agent/tool runtime data
+.omc/
