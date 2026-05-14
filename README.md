@@ -38,25 +38,28 @@ flowchart TD
     G2 --> G3["3. Build indexes<br/>/ingest-docs<br/>INGESTING_SOURCES"]
     G3 --> G4["4. Build outline<br/>/build-outline<br/>BUILDING_OUTLINE"]
     G4 --> G5["5. Initial diagnosis<br/>DIAGNOSING<br/>5 questions to gauge level"]
-    G5 --> G6["6. Feynman loop<br/>One concept at a time"]
+    G5 --> Mem["Load _learner/SOUL.md<br/>cross-project coach memory"]
+    Mem --> G6["6. Feynman loop<br/>One concept at a time"]
     G6 --> G7{"Outline fully covered?"}
     G7 -->|no| G6
     G7 -->|yes| G8(["ENDED"])
 
     G6 -.->|anytime| Save["/end<br/>persist exact resume point"]
     Save -.->|next session| Resume["/continue<br/>resume from saved point"]
-    Resume -.-> G6
+    Resume -.-> Mem
 
     G8 -.->|user-triggered| Rev["/review<br/>low scores · misconceptions · stale"]
-    Rev -.-> G6
+    Rev -.-> Mem
 
     classDef phase fill:#e1f5ff,stroke:#0288d1,color:#000
     classDef cmd fill:#e8f5e9,stroke:#388e3c,color:#000
     classDef done fill:#fce4ec,stroke:#c2185b,color:#000
+    classDef mem fill:#f3e5f5,stroke:#7b1fa2,color:#000
 
     class G1,G2,G3,G4,G5,G6 phase
     class NP,Save,Resume,Rev cmd
     class G8 done
+    class Mem mem
 ```
 
 ### Per-concept Feynman loop
@@ -87,7 +90,7 @@ flowchart TD
     class Gate,NodeDone gate
 ```
 
-Orange blocks are mechanically enforced Pi tool calls, blue blocks are state machine nodes, pink blocks are decision gates, and green blocks are user command entry points. Full state rules live in the [`feynman-coach`](.pi/skills/feynman-coach/SKILL.md) skill.
+Orange blocks are mechanically enforced Pi tool calls, blue blocks are state machine nodes, pink blocks are decision gates, green blocks are user command entry points, and the purple block loads cross-project coach memory before every Feynman loop entry. Full state rules live in the [`feynman-coach`](.pi/skills/feynman-coach/SKILL.md) skill.
 
 ## Requirements
 

@@ -38,25 +38,28 @@ flowchart TD
     G2 --> G3["3. 建立索引<br/>/ingest-docs<br/>INGESTING_SOURCES"]
     G3 --> G4["4. 生成大纲<br/>/build-outline<br/>BUILDING_OUTLINE"]
     G4 --> G5["5. 初始诊断<br/>DIAGNOSING<br/>5 题判定水平"]
-    G5 --> G6["6. 费曼循环<br/>每次只讲一个概念"]
+    G5 --> Mem["加载 _learner/SOUL.md<br/>跨项目教练记忆"]
+    Mem --> G6["6. 费曼循环<br/>每次只讲一个概念"]
     G6 --> G7{"大纲全部完成?"}
     G7 -->|否| G6
     G7 -->|是| G8(["ENDED"])
 
     G6 -.->|随时| Save["/end<br/>写入精确续点"]
     Save -.->|下次会话| Resume["/continue<br/>从续点恢复"]
-    Resume -.-> G6
+    Resume -.-> Mem
 
     G8 -.->|用户主动| Rev["/review<br/>复习低分/误解/陈旧"]
-    Rev -.-> G6
+    Rev -.-> Mem
 
     classDef phase fill:#e1f5ff,stroke:#0288d1,color:#000
     classDef cmd fill:#e8f5e9,stroke:#388e3c,color:#000
     classDef done fill:#fce4ec,stroke:#c2185b,color:#000
+    classDef mem fill:#f3e5f5,stroke:#7b1fa2,color:#000
 
     class G1,G2,G3,G4,G5,G6 phase
     class NP,Save,Resume,Rev cmd
     class G8 done
+    class Mem mem
 ```
 
 ### 单概念费曼循环
@@ -87,7 +90,7 @@ flowchart TD
     class Gate,NodeDone gate
 ```
 
-橙色块是机械强制的 Pi 工具调用，蓝色块是状态机节点，粉色块是判定门槛，绿色是用户命令入口。完整状态规则见 [`feynman-coach`](.pi/skills/feynman-coach/SKILL.md) skill。
+橙色块是机械强制的 Pi 工具调用，蓝色块是状态机节点，粉色块是判定门槛，绿色是用户命令入口，紫色块在每次进入费曼循环前加载跨项目教练记忆。完整状态规则见 [`feynman-coach`](.pi/skills/feynman-coach/SKILL.md) skill。
 
 ## 环境要求
 
