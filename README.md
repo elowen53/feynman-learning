@@ -156,6 +156,8 @@ Custom tools:
 - `feynman_write_concept_note`: writes the durable Markdown note for a concept
 - `feynman_update_progress`: updates project progress with serialized file writes
 - `feynman_record_score`: records scores and enforces the pass threshold
+- `feynman_list_concepts`: queries `concept-notes/index.json` with filters so the agent only loads relevant entries
+- `feynman_rebuild_concept_index`: rebuilds `concept-notes/index.json` from the note files and `reviews.json` when it drifts
 
 The package also includes a protocol extension that appends the short `AGENTS.md` hard rules to Pi's system prompt when the package is installed globally or from GitHub. Detailed workflow rules live in the `feynman-coach` skill and are loaded by the prompt templates with `/skill:feynman-coach`. When you run Pi inside this repository, Pi may already load `AGENTS.md`; the extension avoids duplicating it.
 
@@ -195,7 +197,7 @@ Concept notes are saved under:
 
 They are the long-term knowledge base for taught concepts. The chat stays concise, while each note captures the explanation, definition, mechanism, examples, misconceptions, restatement task, and review questions.
 
-`concept-notes/index.json` is the table of contents for these notes. `feynman_write_concept_note` and `feynman_record_score` keep it up to date with each concept's outline node, file path, current state, last score, and active misconceptions, so the agent can locate notes and pick review targets without scanning the directory.
+`concept-notes/index.json` is the table of contents for these notes. `feynman_write_concept_note` and `feynman_record_score` keep it up to date with each concept's outline node, slugs, file path, `last_outcome` (`new` / `learning` / `remediating` / `passed`), last score summary, and active misconceptions. The agent uses `feynman_list_concepts` to query it with filters, and `feynman_rebuild_concept_index` to recover from drift after manual edits.
 
 ## Recommended Workflow
 

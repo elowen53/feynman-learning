@@ -156,6 +156,8 @@ Prompt template：
 - `feynman_write_concept_note`：生成或更新概念讲义
 - `feynman_update_progress`：以序列化写入更新项目进度
 - `feynman_record_score`：记录评分并强制通过门槛
+- `feynman_list_concepts`：按 `outline_node` / `last_outcome` 等过滤条件查询 `concept-notes/index.json`，让 agent 只加载需要的 entry
+- `feynman_rebuild_concept_index`：当索引和实际文件不一致时，从笔记文件和 `reviews.json` 重建
 
 包内还有一个协议扩展：作为 Pi 包安装时，会把瘦身后的 `AGENTS.md` 硬规则注入 Pi 的系统提示。详细工作流写在 `feynman-coach` skill 中，由 prompt template 通过 `/skill:feynman-coach` 加载。在仓库内本地运行 Pi 时，Pi 可能已经加载过 `AGENTS.md`，扩展会跳过避免重复。
 
@@ -195,7 +197,7 @@ Prompt template：
 
 它们是已讲概念的长期知识库。聊天保持精简，每份讲义负责承载完整的解释、定义、机制、例子、误区、复述任务和检查题。
 
-`concept-notes/index.json` 是这些讲义的目录索引。`feynman_write_concept_note` 和 `feynman_record_score` 会自动维护它，记录每个概念的大纲节点、文件路径、当前状态、最近分数和未消除的误解，让 agent 在学习与复习时不必扫描整个目录就能直达对应讲义。
+`concept-notes/index.json` 是这些讲义的目录索引。`feynman_write_concept_note` 和 `feynman_record_score` 会自动维护它：每条 entry 记录大纲节点、概念名、slug、文件路径、`last_outcome`（`new` / `learning` / `remediating` / `passed`）、最近一次评分摘要和未消除的误解。Agent 通过 `feynman_list_concepts` 按需查询，避免把整份索引拉进上下文；当索引与实际笔记文件失同步（手工编辑、改名、删除等）时，用 `feynman_rebuild_concept_index` 从笔记文件和 `reviews.json` 重建。
 
 ## 推荐工作流
 

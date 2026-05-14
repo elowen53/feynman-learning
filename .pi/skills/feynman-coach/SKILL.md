@@ -63,8 +63,17 @@ Use dedicated Feynman tools for durable learning state instead of ad hoc file ed
 - `feynman_update_progress`: merge structured updates into `progress.json`.
 - `feynman_record_score`: record concept scores, update reviews, and enforce the score gate.
 - `feynman_tavily_search`: search with the currently supported Tavily provider and save Markdown under `sources/web/`.
+- `feynman_list_concepts`: query `concept-notes/index.json` with filters (`outline_node`, `last_outcome`, `limit`).
+- `feynman_rebuild_concept_index`: rebuild `concept-notes/index.json` from the actual note files plus `reviews.json`.
 
-`feynman_write_concept_note` and `feynman_record_score` also maintain `concept-notes/index.json`. This file is the canonical table of contents for every concept that has a durable note, with each entry recording the outline node, concept name, file path, current state, last score, and active misconceptions. Read it first when you need to find an existing concept note, choose review targets, or report status, instead of scanning the directory.
+`feynman_write_concept_note` and `feynman_record_score` keep `concept-notes/index.json` in sync. Each entry records the outline node, concept name, slugs, file path, `last_outcome`, last score summary, and active misconceptions. The `last_outcome` enum is:
+
+- `new`: the entry exists but has not been taught yet.
+- `learning`: a note has been written; the learner has not been scored.
+- `remediating`: the latest score did not pass the gate.
+- `passed`: the latest score passed (`average ≥ 7` and every dimension `≥ 6`).
+
+Prefer `feynman_list_concepts` over reading the full `index.json` so the conversation context stays small. Call `feynman_rebuild_concept_index` when notes were edited, renamed, or removed outside the Feynman tools, or when status surfaces entries that disagree with the actual files.
 
 Required tool use:
 
@@ -289,7 +298,7 @@ This summary must be written into project progress, not only shown in chat.
 
 ## Review
 
-Only enter review when the user explicitly invokes review or asks to review. Use `concept-notes/index.json` together with `reviews.json` and `progress.json` to choose targets: prioritize entries with low `last_score.average`, non-empty `active_misconceptions`, or stale `last_updated_at`, plus prerequisites for upcoming outline nodes.
+Only enter review when the user explicitly invokes review or asks to review. Pull review candidates with `feynman_list_concepts` (e.g. `last_outcome: "remediating"` or `last_outcome: "passed"` filtered by stale `last_touched_at`) instead of reading the whole index, then cross-check `reviews.json` and `progress.json` for prerequisites of upcoming outline nodes.
 
 Review still uses the Feynman loop. Do not directly summarize the answer before the learner explains.
 
