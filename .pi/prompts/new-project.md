@@ -3,7 +3,9 @@ description: Create a strict Feynman learning project
 argument-hint: "<topic>"
 ---
 
-Use the `feynman-coach` skill.
+/skill:feynman-coach
+
+Follow the loaded `feynman-coach` skill.
 
 Create or initialize a new Feynman learning project for: `$ARGUMENTS`.
 
@@ -15,4 +17,5 @@ Follow this sequence strictly:
 4. Ask whether they want to manually place Markdown files in `sources/user-docs/` or add files through `/add-doc`.
 5. Do not teach yet.
 6. Create the `concept-notes/` directory for durable per-concept Markdown notes.
-7. Create or update the project metadata and initial progress state if file tools are available.
+7. Call `feynman_update_progress` with `current_state: "COLLECTING_GOAL"` or the next accurate state.
+8. Create or update the project metadata and initial progress state if file tools are available.

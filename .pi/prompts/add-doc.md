@@ -3,7 +3,9 @@ description: Add a Markdown document to a Feynman project
 argument-hint: "<project> <path-to-md>"
 ---
 
-Use the `feynman-coach` skill.
+/skill:feynman-coach
+
+Follow the loaded `feynman-coach` skill.
 
 Add a Markdown document to project and source path: `$ARGUMENTS`.
 

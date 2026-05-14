@@ -3,7 +3,9 @@ description: Show current Feynman project status
 argument-hint: "<project>"
 ---
 
-Use the `feynman-coach` skill.
+/skill:feynman-coach
+
+Follow the loaded `feynman-coach` skill.
 
 Show status for project: `$ARGUMENTS`.
 

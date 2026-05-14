@@ -13,6 +13,7 @@ This package turns Pi into a single-learner, multi-project learning coach that:
 - saves a durable Markdown note for every taught concept
 - requires restatement and learner-owned examples
 - scores each concept before advancing
+- enforces progress and score writes through dedicated Pi tools
 - records detailed progress for continuation
 - runs review only when the learner explicitly asks
 
@@ -79,8 +80,11 @@ Extension command:
 Custom tool:
 
 - `feynman_tavily_search`: searches Tavily and saves results to Markdown
+- `feynman_write_concept_note`: writes the durable Markdown note for a concept
+- `feynman_update_progress`: updates project progress with serialized file writes
+- `feynman_record_score`: records scores and enforces the pass threshold
 
-The package also includes a protocol extension that appends `AGENTS.md` to Pi's system prompt when the package is installed globally or from GitHub. When you run Pi inside this repository, Pi may already load `AGENTS.md`; the extension avoids duplicating it.
+The package also includes a protocol extension that appends the short `AGENTS.md` hard rules to Pi's system prompt when the package is installed globally or from GitHub. Detailed workflow rules live in the `feynman-coach` skill and are loaded by the prompt templates with `/skill:feynman-coach`. When you run Pi inside this repository, Pi may already load `AGENTS.md`; the extension avoids duplicating it.
 
 ## Project Data Layout
 
@@ -146,9 +150,11 @@ Review is explicit:
 
 - `AGENTS.md`: strict coach protocol for project-local use
 - `.pi/extensions/feynman-protocol.ts`: installs the strict coach protocol when used as a Pi package
+- `.pi/extensions/feynman-state.ts`: concept note, progress, and score tools
 - `.pi/skills/feynman-coach/SKILL.md`: reusable Feynman workflow skill
 - `.pi/prompts/*.md`: command prompt templates
 - `.pi/extensions/feynman-tavily.ts`: Tavily search extension
+- `docs/pi-alignment-review.md`: Pi alignment review and optimization plan
 - `docs/design.md`: design notes
 
 ## Publish To GitHub

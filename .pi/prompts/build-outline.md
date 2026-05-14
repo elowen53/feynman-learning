@@ -3,7 +3,9 @@ description: Build or revise the project learning outline
 argument-hint: "<project>"
 ---
 
-Use the `feynman-coach` skill.
+/skill:feynman-coach
+
+Follow the loaded `feynman-coach` skill.
 
 Build or revise the learning outline for project: `$ARGUMENTS`.
 
@@ -22,3 +24,4 @@ Output:
 - Mark prerequisites and diagnosis targets.
 - Plan each small concept so it can become one durable Markdown note under `concept-notes/`.
 - Do not start teaching until initial diagnosis is complete.
+- Call `feynman_update_progress` with `current_state: "DIAGNOSING"` and the next diagnosis action.

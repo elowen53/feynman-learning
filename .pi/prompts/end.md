@@ -3,7 +3,9 @@ description: End a Feynman session and persist detailed progress
 argument-hint: "<project>"
 ---
 
-Use the `feynman-coach` skill.
+/skill:feynman-coach
+
+Follow the loaded `feynman-coach` skill.
 
 End the current learning session for project: `$ARGUMENTS`.
 
@@ -20,4 +22,4 @@ You must persist a detailed continuation point:
 - next action
 - exact first sentence to use on next `/continue`
 
-Before ending, update the current `concept-notes/**/*.md` file with any new corrections, misconceptions, useful learner examples, and next review questions. Then update `progress.json`, `reviews.json`, and write a timestamped Markdown note in `sessions/`.
+Before ending, call `feynman_write_concept_note` if there are new corrections, misconceptions, useful learner examples, or next review questions. Then call `feynman_update_progress` with `current_state: "ENDED"` and write a timestamped Markdown note in `sessions/`.

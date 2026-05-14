@@ -3,11 +3,13 @@ description: Search the web with Tavily and store results as Markdown
 argument-hint: "<project> <query>"
 ---
 
-Use the `feynman-coach` skill.
+/skill:feynman-coach
+
+Follow the loaded `feynman-coach` skill.
 
 Search the web for project and query: `$ARGUMENTS`.
 
-Use the Tavily provider through the available Pi extension/tool when possible. Save the result as Markdown under:
+Use `feynman_tavily_search`. Tavily is the only currently supported provider. Save the result as Markdown under:
 
 ```text
 ~/.pi/feynman-projects/<project>/sources/web/

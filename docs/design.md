@@ -22,6 +22,8 @@ The note is the durable knowledge artifact. Chat output should stay focused on t
 
 Markdown is canonical because the rest of the project indexing pipeline is Markdown-first. HTML may be generated as an additional display artifact when requested, but it should not replace the Markdown note.
 
+The `feynman_write_concept_note` tool owns concept-note writes. It derives the canonical path, writes the stable Markdown structure, updates `progress.json.current_concept_note`, and mirrors the checkpoint with `pi.appendEntry()`.
+
 ## Source Policy
 
 Supported source type:
@@ -39,13 +41,22 @@ Users must convert unsupported materials to Markdown before ingestion.
 
 ## Network Search
 
-Tavily is the default search provider. Search results are not transient context; they are converted into Markdown and stored under:
+Tavily is the only currently supported search provider. Search results are not transient context; they are converted into Markdown and stored under:
 
 ```text
 ~/.pi/feynman-projects/<project>/sources/web/
 ```
 
 This keeps web knowledge auditable and indexable alongside user-provided Markdown.
+
+## State Tools
+
+Strict learning state should be maintained by tools instead of ad hoc prompt-only file edits:
+
+- `feynman_update_progress` updates `progress.json`.
+- `feynman_record_score` records scores, updates review metadata, and enforces the pass threshold.
+- Shared state writes use Pi's `withFileMutationQueue()` so concurrent tool calls do not overwrite each other.
+- Important checkpoints are mirrored with `pi.appendEntry()`, while project files remain the source of truth.
 
 ## Passing Threshold
 
