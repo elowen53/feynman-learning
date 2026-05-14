@@ -30,6 +30,8 @@
 ~/.pi/feynman-projects/llm/
 ```
 
+以下划线开头的目录名保留给系统级数据（例如 `_learner/SOUL.md`），学习项目名称不得以 `_` 开头。
+
 学习项目数据不放在本代码仓库，除非用户明确要求。
 
 ## 资料和讲义
@@ -52,6 +54,9 @@
 - `feynman_update_progress`：更新 `progress.json`。
 - `feynman_validate_transition`：不确定是否能推进状态时，先验证状态转移和 Pi 分支归属。
 - `feynman_record_score`：记录评分并执行通过门槛。
+- `feynman_update_coach_memory`：把学习者确认或多次观察到的跨项目教练记忆写入 `~/.pi/feynman-projects/_learner/SOUL.md`。
+- `feynman_read_coach_memory`：读取跨项目教练记忆，用于个性化补救策略。
+- `feynman_retract_coach_memory`：把被证伪或过期的长期教练记忆移入 `SOUL.md` 的 `Retracted` 段，避免继续生效。
 - `feynman_tavily_search`：使用当前唯一支持的 Tavily provider 搜索并保存 Markdown。
 
 ## 评分门槛
@@ -69,6 +74,8 @@
 - `feynman_write_concept_note` 拒绝在同一大纲节点存在 `last_outcome === "remediating"` 的概念时新开一个不同的概念——必须先让那个概念过门槛，或在学习者明确请求跳过时显式传 `force: true`。
 - 所有会写 `progress.json` 的 Feynman 工具都会验证状态转移；不能从 `WAITING_RESTATEMENT` 或 `CORRECTING` 直接跳到下一个概念，除非当前评分已通过。
 - 所有会写 `progress.json` 的 Feynman 工具默认使用 Pi branch ownership；如果当前 session branch 不是该项目进度的后代分支，会拒绝写入。只有学习者明确选择让当前分支接管项目时，才允许传 `branchMode: "adopt"`。
+- `feynman_update_coach_memory` 拒绝无证据、少于 20 字符的观察，且除非学习者明确确认，否则必须至少有 2 次独立观察。`SOUL.md` 只记录跨项目学习画像、有效补救策略和教练自我修正，不得替代 `progress.json` 或写人格标签。
+- `/start` 和 `/continue` 必须读取 `SOUL.md` 的有效记忆；`Retracted` 段只作审计，不得继续影响教练策略。
 
 ## 完整流程
 

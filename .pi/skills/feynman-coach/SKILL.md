@@ -36,6 +36,16 @@ reviews.json
 sessions/
 ```
 
+Project names starting with `_` are reserved for Feynman system directories and must not be used for learner projects.
+
+Cross-project learner coaching memory lives outside individual projects:
+
+```text
+~/.pi/feynman-projects/_learner/SOUL.md
+```
+
+`SOUL.md` is long-term coach memory, not a personality prompt. Use it only for learner-confirmed or repeatedly observed learning preferences, recurring weaknesses, effective remediation patterns, scoring calibration notes, cross-project misconceptions, and coach self-corrections.
+
 Only Markdown sources are supported. If the user provides a PDF or non-Markdown file, tell them to convert it to Markdown first.
 
 ## Commands
@@ -63,6 +73,9 @@ Use dedicated Feynman tools for durable learning state instead of ad hoc file ed
 - `feynman_update_progress`: merge structured updates into `progress.json`.
 - `feynman_validate_transition`: validate a proposed `progress.json` state transition and Pi session branch ownership before writing.
 - `feynman_record_score`: record concept scores, update reviews, and enforce the score gate.
+- `feynman_update_coach_memory`: append evidence-backed cross-project learner coaching memory to `_learner/SOUL.md`.
+- `feynman_read_coach_memory`: read `_learner/SOUL.md` when adapting coaching across projects.
+- `feynman_retract_coach_memory`: move disproven or superseded coach memory entries to the audit-only `Retracted` section.
 - `feynman_tavily_search`: search with the currently supported Tavily provider and save Markdown under `sources/web/`.
 - `feynman_list_concepts`: query `concept-notes/index.json` with filters (`outline_node`, `last_outcome`, `limit`).
 - `feynman_rebuild_concept_index`: rebuild `concept-notes/index.json` from the actual note files plus `reviews.json`.
@@ -81,6 +94,7 @@ Required tool use:
 - Before teaching a new concept, call `feynman_write_concept_note`.
 - When the current state, outline node, concept, note path, or next action changes, call `feynman_update_progress`.
 - When unsure whether the current project can move to a new state, call `feynman_validate_transition` first.
+- On `/start` and `/continue`, call `feynman_read_coach_memory` before selecting the teaching or remediation strategy.
 - After evaluating the learner's restatement and example, call `feynman_record_score`.
 - Do not advance to the next concept unless `feynman_record_score` returns `passed: true`.
 - When calling `feynman_record_score` for a passing concept, set `nextState` and `nextAction` to either the next concept flow or `NODE_SUMMARY` if the outline node is complete.
@@ -92,6 +106,8 @@ Mechanical guards the tools enforce — these will reject the call, not record a
 - `feynman_write_concept_note` rejects starting a new concept while another concept in the same outline node has `last_outcome === "remediating"`. Either pass that concept first, or — only when the learner explicitly asks to skip — call again with `force: true`.
 - Mutating Feynman tools reject invalid state transitions. In particular, do not move from `WAITING_RESTATEMENT` or `CORRECTING` to a new concept until the current concept has a passing score.
 - Mutating Feynman tools reject writes from a Pi session branch that does not descend from the branch that last advanced the project. Use `branchMode: "adopt"` only when the learner explicitly chooses the current branch as the canonical project path.
+- `feynman_update_coach_memory` rejects unsupported memories. The observation must be concrete, evidence-backed, and either learner-confirmed or supported by at least two separate observations.
+- `feynman_retract_coach_memory` preserves retracted entries for auditability, but `feynman_read_coach_memory` omits `Retracted` by default so stale memories stop guiding future coaching.
 
 The project files remain the canonical learning record. `pi.appendEntry()` mirrors important checkpoints into the Pi session for audit and recovery within the same session branch.
 

@@ -38,6 +38,10 @@ function slugify(input: string): string {
 		.slice(0, 80);
 }
 
+function isReservedProjectInput(input: string): boolean {
+	return input.trim().startsWith("_");
+}
+
 function escapeMd(value: string | undefined): string {
 	return (value || "").replace(/\r\n/g, "\n").trim();
 }
@@ -104,6 +108,18 @@ export default function feynmanTavily(pi: ExtensionAPI) {
 		],
 		parameters: searchParameters,
 		async execute(_toolCallId, params, signal) {
+			if (isReservedProjectInput(params.project)) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: `Project name "${params.project}" is reserved. Feynman system directories use leading underscores; choose a learner project name that does not start with "_".`,
+						},
+					],
+					details: { ok: false, reason: "reserved_project_slug" },
+				};
+			}
+
 			const apiKey = process.env.TAVILY_API_KEY;
 			if (!apiKey) {
 				return {
@@ -185,6 +201,10 @@ export default function feynmanTavily(pi: ExtensionAPI) {
 			const query = queryParts.join(" ");
 			if (!project || !query) {
 				ctx.ui.notify("Usage: /feynman-search <project> <query>", "warning");
+				return;
+			}
+			if (isReservedProjectInput(project)) {
+				ctx.ui.notify("Project names starting with '_' are reserved for Feynman system directories.", "warning");
 				return;
 			}
 

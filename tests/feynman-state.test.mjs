@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, readFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -80,6 +80,14 @@ async function note(project, node, concept) {
 	return readFile(file, "utf8");
 }
 
+async function coachMemory() {
+	return readFile(coachMemoryFile(), "utf8");
+}
+
+function coachMemoryFile() {
+	return join(tmpHome, ".pi", "feynman-projects", "_learner", "SOUL.md");
+}
+
 async function call(tool, params, context) {
 	return tool.execute("test-call", params, undefined, undefined, context);
 }
@@ -90,13 +98,31 @@ const updateProgress = tools.get("feynman_update_progress");
 const validateTransition = tools.get("feynman_validate_transition");
 const recordScore = tools.get("feynman_record_score");
 const listConcepts = tools.get("feynman_list_concepts");
+const updateCoachMemory = tools.get("feynman_update_coach_memory");
+const readCoachMemory = tools.get("feynman_read_coach_memory");
+const retractCoachMemory = tools.get("feynman_retract_coach_memory");
 
 assert.ok(writeNote, "write note tool registered");
 assert.ok(updateProgress, "update progress tool registered");
 assert.ok(validateTransition, "validate transition tool registered");
 assert.ok(recordScore, "record score tool registered");
+assert.ok(updateCoachMemory, "update coach memory tool registered");
+assert.ok(readCoachMemory, "read coach memory tool registered");
+assert.ok(retractCoachMemory, "retract coach memory tool registered");
 
 {
+	const reservedProject = await call(
+		writeNote,
+		{
+			project: "_learner",
+			outlineNode: "Reserved",
+			concept: "Should Not Write",
+		},
+		ctx(["root", "reserved-1"]),
+	);
+	assert.equal(reservedProject.details.ok, false);
+	assert.equal(reservedProject.details.reason, "reserved_project_slug");
+
 	const result = await call(
 		writeNote,
 		{
@@ -263,6 +289,114 @@ assert.ok(recordScore, "record score tool registered");
 	const listed = await call(listConcepts, { project: "Score Demo", last_outcome: "passed" });
 	assert.equal(listed.details.total, 1);
 	assert.equal(listed.details.concepts[0].concept, "Simple Words");
+}
+
+{
+	const unsupported = await call(updateCoachMemory, {
+		category: "Recurring Weaknesses",
+		observation: "Learner may be vague when examples are required.",
+		evidence: ["One short example attempt lacked a concrete learner-owned scenario."],
+		occurrenceCount: 1,
+	});
+	assert.equal(unsupported.details.ok, false);
+	assert.equal(unsupported.details.reason, "coach_memory_insufficient_confirmation");
+
+	const confirmed = await call(updateCoachMemory, {
+		category: "Effective Remediation Patterns",
+		observation:
+			"Concrete counterexamples help the learner repair vague explanations faster than repeating the definition.",
+		evidence: [
+			"In Score Demo, the learner replaced a copied definition with a concrete personal example after correction.",
+		],
+		project: "Score Demo",
+		outlineNode: "Basics",
+		concept: "Simple Words",
+		learnerConfirmed: true,
+	});
+	assert.equal(confirmed.details.ok, true);
+	assert.equal(confirmed.details.path.endsWith("_learner/SOUL.md"), true);
+
+	const stable = await call(updateCoachMemory, {
+		category: "Recurring Weaknesses",
+		observation:
+			"The learner tends to treat a familiar definition as understanding until asked for a learner-owned example.",
+		evidence: [
+			"First observation: copied or generic explanation before remediation in Score Demo.",
+			"Second observation: example ability score stayed below the pass gate before correction.",
+		],
+		project: "Score Demo",
+		occurrenceCount: 2,
+	});
+	assert.equal(stable.details.ok, true);
+
+	const memory = await coachMemory();
+	assert.match(memory, /# Feynman Coach Long-Term Memory/);
+	assert.match(memory, /## Effective Remediation Patterns/);
+	assert.match(memory, /Concrete counterexamples help the learner/);
+	assert.match(memory, /## Recurring Weaknesses/);
+	assert.match(memory, /treat a familiar definition as understanding/);
+
+	const readEffective = await call(readCoachMemory, {
+		category: "Effective Remediation Patterns",
+		maxChars: 4000,
+	});
+	assert.equal(readEffective.details.ok, true);
+	assert.match(readEffective.content[0].text, /## Effective Remediation Patterns/);
+	assert.doesNotMatch(readEffective.content[0].text, /## Recurring Weaknesses/);
+
+	await writeFile(
+		coachMemoryFile(),
+		[
+			"# Feynman Coach Long-Term Memory",
+			"",
+			"## Recurring Weaknesses",
+			"",
+			"Manual note that should survive cleanup.",
+			"- No entries yet.",
+			"",
+			"## Last Updated",
+			"",
+			"",
+			"Never",
+			"",
+			"## Last Updated",
+			"",
+			"Old duplicate",
+			"",
+		].join("\n"),
+		"utf8",
+	);
+
+	const dirtyAppend = await call(updateCoachMemory, {
+		category: "Recurring Weaknesses",
+		observation:
+			"Manual editing should not leave placeholder text beside real coach memory entries.",
+		evidence: [
+			"SOUL.md had a manually edited section with both a note and a stale No entries placeholder.",
+			"SOUL.md also had duplicate Last Updated sections before the next memory write.",
+		],
+		occurrenceCount: 2,
+	});
+	assert.equal(dirtyAppend.details.ok, true);
+
+	const cleaned = await coachMemory();
+	const recurring = cleaned.match(/## Recurring Weaknesses[\s\S]*?(?=\n## |\n*$)/)?.[0] || "";
+	assert.doesNotMatch(recurring, /No entries yet/);
+	assert.equal((cleaned.match(/^## Last Updated$/gm) || []).length, 1);
+
+	const retracted = await call(retractCoachMemory, {
+		entryIdOrMatch: "Manual editing should not leave placeholder",
+		reason:
+			"Later evidence showed this was a Markdown cleanup test entry, not a real learner pattern.",
+	});
+	assert.equal(retracted.details.ok, true);
+
+	const activeMemory = await call(readCoachMemory, { maxChars: 8000 });
+	assert.doesNotMatch(activeMemory.content[0].text, /Manual editing should not leave placeholder/);
+
+	const auditMemory = await call(readCoachMemory, { includeRetracted: true, maxChars: 8000 });
+	assert.match(auditMemory.content[0].text, /## Retracted/);
+	assert.match(auditMemory.content[0].text, /Manual editing should not leave placeholder/);
 }
 
 console.log("feynman-state tests passed");

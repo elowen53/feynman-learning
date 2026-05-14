@@ -15,9 +15,10 @@ Before teaching:
 2. Load `indexes/docs-index.md` into context.
 3. Load `outline.md`.
 4. Load `progress.json`.
-5. If `progress.json.current_concept_note` exists, load that concept note.
-6. If diagnosis is not complete, run the required diagnosis first.
-7. If current state is `WAITING_RESTATEMENT`, ask for restatement instead of explaining more.
-8. Otherwise call `feynman_write_concept_note`, then continue with exactly one small concept.
-9. In chat, give only a concise guided explanation, include the returned concept note path, and ask for restatement plus a learner-owned example.
-10. Do not advance after the learner answers until `feynman_record_score` returns `passed: true`.
+5. Call `feynman_read_coach_memory` and use only active, evidence-backed coaching patterns to adapt remediation style.
+6. If `progress.json.current_concept_note` exists, load that concept note.
+7. If diagnosis is not complete, run the required diagnosis first.
+8. If current state is `WAITING_RESTATEMENT`, ask for restatement instead of explaining more.
+9. Otherwise call `feynman_write_concept_note`, then continue with exactly one small concept.
+10. In chat, give only a concise guided explanation, include the returned concept note path, and ask for restatement plus a learner-owned example.
+11. Do not advance after the learner answers until `feynman_record_score` returns `passed: true`.

@@ -157,6 +157,9 @@ Prompt template：
 - `feynman_update_progress`：以序列化写入更新项目进度
 - `feynman_validate_transition`：写入进度前验证状态转移和 Pi 分支归属
 - `feynman_record_score`：记录评分并强制通过门槛
+- `feynman_update_coach_memory`：把有证据支撑的长期教练记忆追加到 `_learner/SOUL.md`
+- `feynman_read_coach_memory`：读取长期教练记忆，用于跨项目个性化补救
+- `feynman_retract_coach_memory`：撤回被证伪或过期的长期教练记忆，同时保留审计记录
 - `feynman_list_concepts`：按 `outline_node` / `last_outcome` 等过滤条件查询 `concept-notes/index.json`，让 agent 只加载需要的 entry
 - `feynman_rebuild_concept_index`：当索引和实际文件不一致时，从笔记文件和 `reviews.json` 重建
 
@@ -171,6 +174,8 @@ Prompt template：
 - `feynman_record_score` 拒绝 `passed: true` 当概念讲义里没有 `### Update` 段——必须先调一次带 `learnerOutputAndCorrections` 的 `feynman_write_concept_note` 留下追问痕迹。
 - `feynman_write_concept_note` 拒绝在同一大纲节点存在 `remediating` 概念时新开另一个概念——除非显式传 `force: true`（仅在学习者主动要求跳过时使用）。
 - 会写入进度的 Feynman 工具会拒绝非法状态转移，也会拒绝来自非后代 Pi session branch 的写入。只有学习者明确选择让当前分支接管项目时，才使用 `branchMode: "adopt"`。
+- `feynman_update_coach_memory` 拒绝无依据记忆：每条记录必须有具体证据，且需要学习者确认或至少两次独立观察。
+- `feynman_read_coach_memory` 默认不返回已撤回记忆；撤回内容只留在 `SOUL.md` 中用于审计。
 
 完整状态规则见 `feynman-coach` skill。
 
