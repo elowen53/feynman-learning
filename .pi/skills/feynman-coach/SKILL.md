@@ -339,6 +339,13 @@ Before ending a session, ensure the project files capture the precise continuati
   "active_misconceptions": [],
   "scores": [],
   "next_action": "",
+  "pi_branch": {
+    "session_file": "",
+    "branch_entry_id": "",
+    "branch_depth": 0,
+    "source": "",
+    "updated_at": ""
+  },
   "updated_at": ""
 }
 ```

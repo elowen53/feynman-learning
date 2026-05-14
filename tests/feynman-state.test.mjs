@@ -135,6 +135,19 @@ assert.ok(recordScore, "record score tool registered");
 	);
 	assert.equal(invalid.details.ok, false);
 	assert.equal(invalid.details.reason, "remediation_not_passed");
+
+	const crossNodeConcept = await call(
+		writeNote,
+		{
+			project: "Branch Demo",
+			outlineNode: "Advanced",
+			concept: "Transfer",
+			intuitiveExplanation: "Transfer means using the idea in a new situation.",
+		},
+		ctx(["root", "fork-1", "fork-2"]),
+	);
+	assert.equal(crossNodeConcept.details.ok, false);
+	assert.equal(crossNodeConcept.details.reason, "current_concept_not_passed");
 }
 
 {
